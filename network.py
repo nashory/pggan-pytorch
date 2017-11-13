@@ -31,6 +31,24 @@ def conv(c_in, c_out, k_size, stride=1, pad=0, leaky=True, bn=False):
     return nn.Sequential(*layers)
 
 
+def copy_weights(from_module, to_module):
+    print to_module
+    for k, v in to_module.state_dict().iteritems():
+        try:
+            to_module[k] = from_module[k]
+        except:
+            print 'module name does not match!!!'
+    return to_module
+
+def get_module_names(model):
+    names = []
+    for key, val in model.state_dict().iteritems():
+        name = key.split('.')[0]
+        if not name in names:
+            names.append(name)
+    return names
+
+
 class Generator(nn.Module):
     def __init__(self, config):
         super(Generator, self).__init__()
@@ -42,6 +60,8 @@ class Generator(nn.Module):
         self.flag_tanh = config.flag_leaky
         self.nz = config.nz
         self.ngf = config.ngf
+        self.layer_name = None
+        self.model = self.get_init_gen()
 
     def first_block(self):
         layers = []
@@ -84,26 +104,50 @@ class Generator(nn.Module):
         model.add_module('to_rgb_block', self.to_rgb_block(ndim))
         return model
     
-    def grow_network(self, model, resl):
+    def grow_network(self, resl):
         # we make new network since pytorch does not support remove_module()
-        new_model = nn.Sequential(*list(model.children())[:-1]) # to relu5_3
-        
-        low_resl_to_rgb = copy.deepcopy(model.to_rgb_block)  # make deep copy of the last block
-        prev_block = nn.Sequential()
-        prev_block.add_module('low_resl_upsample', nn.UpsamplingNearest2d(scale_factor=2))
-        prev_block.add_module('low_resl_to_rgb', low_resl_to_rgb)
+        new_model = nn.Sequential()
+        names = get_module_names(self.model)
+        for name, module in self.model.named_children():
+            if not name=='to_rgb_block':
+                new_model.add_module(name, module)                      # make new structure and,
+                new_model[-1].load_state_dict(module.state_dict())      # copy pretrained weights
+            
+        if resl >= 3 and resl <= 9:
+            print 'growing network[{}x{} to {}x{}]. It may take few seconds...'.format(pow(2,resl-1), pow(2,resl-1), pow(2,resl), pow(2,resl))
+            low_resl_to_rgb = copy.deepcopy(self.model.to_rgb_block)     # make deep copy of the last block
+            prev_block = nn.Sequential()
+            prev_block.add_module('low_resl_upsample', nn.UpsamplingNearest2d(scale_factor=2))
+            prev_block.add_module('low_resl_to_rgb', low_resl_to_rgb)
 
-        inter_block, ndim, layer_name = self.intermediate_block(resl)
-        next_block = nn.Sequential()
-        next_block.add_module('high_resl_block', inter_block)
-        next_block.add_module('high_resl_to_rgb', self.to_rgb_block(ndim))
-        
-        new_model.add_module('fadein_block', ConcatTable(prev_block, next_block))
-        
-        return new_model
+            inter_block, ndim, self.layer_name = self.intermediate_block(resl)
+            next_block = nn.Sequential()
+            next_block.add_module('high_resl_block', inter_block)
+            next_block.add_module('high_resl_to_rgb', self.to_rgb_block(ndim))
+
+            new_model.add_module('concat_block', ConcatTable(prev_block, next_block))
+            new_model.add_module('fadein_block', fadein_layer(self.config))
+            self.model = new_model
+           
 
     def flush_network(self):
-        print 'flush network'
+        try:
+            # make deep copy and paste.
+            high_resl_block = copy.deepcopy(self.model.concat_block.layer2.high_resl_block)
+            high_resl_to_rgb = copy.deepcopy(self.model.concat_block.layer2.high_resl_to_rgb)
+           
+            new_model = nn.Sequential()
+            for name, module in self.model.named_children():
+                if name!='concat_block' and name!='fadein_block':
+                    new_model.add_module(name, module)                      # make new structure and,
+                    new_model[-1].load_state_dict(module.state_dict())      # copy pretrained weights
+
+            # now, add the high resolution block.
+            new_model.add_module(self.layer_name, high_resl_block)
+            new_model.add_module('to_rgb_block', high_resl_to_rgb)
+            self.model = new_model
+        except:
+            self.model = self.model
     
     def forward(self, x):
         # if fadein layer flag == True --> flush

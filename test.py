@@ -23,10 +23,11 @@ G = net.Generator(config)
 
 
 # test fadein layer.
-model = G.get_init_gen()
-a = G.grow_network(model, 3)
-print(a)
-
+print(G.model)
+G.grow_network(3)
+print(G.model)
+G.flush_network()
+print(G.model)
 
 
 

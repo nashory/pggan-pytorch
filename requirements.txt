@@ -19,6 +19,8 @@ PyYAML==3.12
 scipy==1.0.0
 six==1.11.0
 subprocess32==3.2.7
+tensorflow-gpu==1.3.0
+tensorflow-tensorboard==0.1.8
 torch==0.2.0.post3
 torchvision==0.1.9
 Werkzeug==0.12.2
