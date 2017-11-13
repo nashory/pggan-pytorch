@@ -9,7 +9,7 @@ import torchvision.datasets as dsets
 import torchvision.transforms as transforms
 from torch.autograd import Variable
 from PIL import Image
-from custom_layers import fadein_layer, ConcatTable
+from custom_layers import fadein_layer, ConcatTable, minibatch_std_concat_layer
 import copy
 
 
@@ -19,16 +19,20 @@ def deconv(layers, c_in, c_out, k_size, stride=1, pad=0, leaky=True, bn=False):
     layers.append(nn.ConvTranspose2d(c_in, c_out, k_size, stride, pad))
     if bn:      layers.append(nn.BatchNorm2d(c_out))
     if leaky:   layers.append(nn.LeakyReLU(0.2))
-    else:       layer.append(nn.ReLU())
+    else:       layers.append(nn.ReLU())
     return layers
 
-def conv(c_in, c_out, k_size, stride=1, pad=0, leaky=True, bn=False):
-    layers = []
+def conv(layers, c_in, c_out, k_size, stride=1, pad=0, leaky=True, bn=False):
     layers.append(nn.Conv2d(c_in, c_out, k_size, stride, pad))
     if bn:      layers.append(nn.BatchNorm2d(c_out))
     if leaky:   layers.append(nn.LeakyReLU(0.2))
-    else:       layer.append(nn.ReLU())
-    return nn.Sequential(*layers)
+    else:       layers.append(nn.ReLU())
+    return layers
+
+def linear(layers, c_in, c_out, sigmoid=True):
+    layers.append(nn.Linear(c_in, c_out))
+    if sigmoid: layers.append(nn.Sigmoid())
+    return layers
 
 
 def copy_weights(from_module, to_module):
@@ -57,7 +61,8 @@ class Generator(nn.Module):
         self.flag_pixelwise = config.flag_pixelwise
         self.flag_wn = config.flag_wn
         self.flag_leaky = config.flag_leaky
-        self.flag_tanh = config.flag_leaky
+        self.flag_tanh = config.flag_tanh
+        self.nc = config.nc
         self.nz = config.nz
         self.ngf = config.ngf
         self.layer_name = None
@@ -93,7 +98,7 @@ class Generator(nn.Module):
     
     def to_rgb_block(self, c_in):
         layers = []
-        layers.append(nn.ConvTranspose2d(c_in, 3, 1, 1, 0))
+        layers.append(nn.ConvTranspose2d(c_in, self.nc, 1, 1, 0))
         if self.flag_tanh:  layers.append(nn.Tanh())
         return nn.Sequential(*layers)
 
@@ -151,24 +156,70 @@ class Generator(nn.Module):
     
     def forward(self, x):
         # if fadein layer flag == True --> flush
-        print 'forward'
+        if self.model.fadein_block and self.model.fadein_block.flag_flush:
+            self.flush_network()
+        print 'forward.'
+
 
         
 
 class Discriminator(nn.Module):
-    def __init__(self):
+    def __init__(self, config):
         super(Discriminator, self).__init__()
-        self.flag_bn = False
-        self.flag_pixelwise = False
-        self.flag_wn = False
-        self.flag_leakyrelu = True
+        self.config = config
+        self.flag_bn = config.flag_bn
+        self.flag_pixelwise = config.flag_pixelwise
+        self.flag_wn = config.flag_wn
+        self.flag_leaky = config.flag_leaky
+        self.flag_sigmoid = config.flag_sigmoid
+        self.nz = config.nz
+        self.nc = config.nc
+        self.ndf = config.ndf
+        self.layer_name = None
+        self.model = self.get_init_dis()
 
-    def first_block(self):
-        print 'grow network'
-    def intermediate_block(self):
-        print 'grow network'
-    def to_rgb_block(self):
-        print 'grow network'
+    def last_block(self, ndim):
+        # add minibatch_std_concat_layer later.
+        layers = []
+        layers = conv(layers, self.nc, ndim, 3, 1, 1, self.flag_leaky, self.flag_bn)
+        layers = conv(layers, ndim, ndim, 4, 1, 0, self.flag_leaky, self.flag_bn)
+        layers = linear(layers, ndim, 1, self.flag_sigmoid)
+        return  nn.Sequential(*layers)
+    
+    def intermediate_block(self, resl):
+        halving = False
+        layer_name = 'itermediate_{}x{}_{}x{}'.format(pow(2,resl), pow(2,resl), pow(2, resl-1), pow(2, resl-1))
+        ndim = self.ngf
+        if resl==3 or resl==4 or resl==5:
+            halving = False
+            ndim = self.ngf
+        elif resl==6 or resl==7 or resl==8 or resl==9 or resl==10:
+            halving = True
+            for i in range(resl-5):
+                ndim = ndim/2
+        layers = []
+        layers.append(nn.UpsamplingNearest2d(scale_factor=2))       # scale up by factor of 2.0
+        if halving:
+            layers = deconv(layers, ndim, ndim, 3, 1, 1, self.flag_leaky, self.flag_bn)
+            layers = deconv(layers, ndim, ndim*2, 3, 1, 1, self.flag_leaky, self.flag_bn)
+        else:
+            layers = deconv(layers, ndim, ndim, 3, 1, 1, self.flag_leaky, self.flag_bn)
+            layers = deconv(layers, ndim, ndim, 3, 1, 1, self.flag_leaky, self.flag_bn)
+        return  nn.Sequential(*layers), ndim, layer_name
+    
+    def from_rgb_block(self):
+        layers = []
+        ndim = self.ndf
+        layers = conv(layers, self.nc, ndim, 1, 1, 0, self.flag_leaky, self.flag_bn)
+        layers = conv(layers, ndim, ndim, 3, 1, 1, self.flag_leaky, self.flag_bn)
+        return  nn.Sequential(*layers), ndim
+    
+    def get_init_dis(self):
+        model = nn.Sequential()
+        from_rgb_block, ndim = self.from_rgb_block()
+        model.add_module('from_rgb_block', from_rgb_block)
+        model.add_module('last_block', self.last_block(ndim))
+        return model
     
     def grow_network():
         print 'grow network'
@@ -178,7 +229,7 @@ class Discriminator(nn.Module):
     def forward():
         print 'forward'
 
-        
+ 
 
 
 

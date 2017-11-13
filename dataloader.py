@@ -17,27 +17,57 @@ class dataloader:
     def __init__(self, config):
         self.root = config.train_data_root
         self.batch_table = {4:32, 8:32, 16:32, 32:16, 64:16, 128:16, 256:12, 512:4, 1024:1} # change this according to available gpu memory.
-
-    def renew(self, config):
-        if config.num_workers==None:    config.num_workers = 8
+        self.batchsize = self.batch_table[pow(2,2)]        # we start from 2^2=4
+        self.imsize = pow(2,2)
+        self.num_workers = 4
+        
         print('[*] Renew dataloader configuration, load data from {}.'.format(self.root))
-        dataset = ImageFolder(
+        
+        self.dataset = ImageFolder(
                     root=self.root,
                     transform=transforms.Compose([
-                        transforms.Scale(size=config.image_size),
+                        transforms.Scale(size=self.imsize),
                         transforms.ToTensor(),]))       
 
-        dataloader = DataLoader(
-            dataset=dataset,
-            batch_size=config.batch_size,
+        self.dataloader = DataLoader(
+            dataset=self.dataset,
+            batch_size=self.batchsize,
             shuffle=True,
-            num_workers=config.num_workers
+            num_workers=self.num_workers
         )
-        return dataloader
-    
-    def get_batch(self, config):
-       print 'get batch.' 
+
+    def renew(self, resl):
+        print('[*] Renew dataloader configuration, load data from {}.'.format(self.root))
         
+        self.batchsize = self.batch_table[pow(2,resl)]
+        self.imsize = pow(2,resl)                               
+        self.dataset = ImageFolder(
+                    root=self.root,
+                    transform=transforms.Compose([
+                        transforms.Scale(size=self.imsize),
+                        transforms.ToTensor(),]))       
+
+        self.dataloader = DataLoader(
+            dataset=self.dataset,
+            batch_size=self.batchsize,
+            shuffle=True,
+            num_workers=self.num_workers
+        )
+
+    def __iter__(self):
+        return iter(self.dataloader)
+    
+    def __next__(self):
+        return next(self.dataloader)
+
+    def __len__(self):
+        return len(self.dataloader)
+
+       
+    def get_batch(self):
+        dataIter = iter(self.dataloader)
+        return next(dataIter)
+
 
         
 

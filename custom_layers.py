@@ -25,16 +25,26 @@ class ConcatTable(nn.Module):
 class fadein_layer(nn.Module):
     def __init__(self, config):
         super(fadein_layer, self).__init__()
-        self.alpha = 0
+        self.alpha = 0.0
+        self.complete = 0.0
         self.phase = 'gtrns'
         self.TICK = config.TICK
         self.trns_tick = config.trns_tick
         self.stab_tick = config.stab_tick
-        self.delta = 1.0/(self.trns_tick + self.stab_tick)/self.TICK
+        self.delta = 1.0/self.TICK
+        self.flag_flush = False
     
     def update_alpha(self, batch_size):
-        self.alpha = self.alpha + batch_size*self.delta
-    
+        self.alpha = self.alpha + batch_size*(self.delta/self.trns_tick)
+        self.alpha = max(0, min(self.alpha, 1.0))
+        self.complete = self.complete + batch_size*(self.delta/(self.trns_tick+self.stab_tick))
+        self.complete = max(0, min(self.complete, 1.0))
+        if self.alpha == 1.0:
+            self.phase = 'gstab'
+        if self.complete == 1.0:
+             self.flag_flush = True
+
+
     def forward(self, x_low, x_high):
         return torch.add(x_low.mul(1.0-self.alpha), x_high.mul(self.alpha))
 
