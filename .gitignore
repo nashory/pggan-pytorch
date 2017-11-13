@@ -1,0 +1,47 @@
+# ignore this files when commit.
+
+# data files.
+*.h5
+*.hdf5
+*.json
+*.t7
+*.npy
+
+
+# zip files.
+*.dmg
+*.7z
+*.gz
+*.iso
+*.jar
+*.rar
+*.tar
+*.zip
+*.tar.gz
+
+# image files.
+*.png
+*.jpeg
+*.jpg
+
+# log files.
+*.log
+*.out
+
+# OS generated files.
+.DS_Store*
+Thumbs.db
+*.swp
+*.pyc
+*.swo
+
+# user generaged files.
+repo/
+venv/
+
+
+
+
+
+
+
