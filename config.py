@@ -6,7 +6,7 @@ import argparse
 parser = argparse.ArgumentParser('PGGAN')
 
 ## general settings.
-parser.add_argument('--train_data_root', type=str, default='/home/nashory/data/CelebA/Img3')
+parser.add_argument('--train_data_root', type=str, default='/home/nashory/data/CelebA/Img')
 parser.add_argument('--random_seed', type=int, default=12345)
 parser.add_argument('--use_cuda', type=bool, default=False)
 

@@ -61,12 +61,12 @@ class dataloader:
         return next(self.dataloader)
 
     def __len__(self):
-        return len(self.dataloader)
+        return len(self.dataloader.dataset)
 
        
     def get_batch(self):
         dataIter = iter(self.dataloader)
-        return next(dataIter)
+        return next(dataIter)[0]
 
 
         

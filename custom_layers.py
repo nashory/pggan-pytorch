@@ -21,6 +21,14 @@ class ConcatTable(nn.Module):
         y = [self.layer1(x), self.layer2(x)]
         return y
 
+class Flatten(nn.Module):
+    def __init__(self):
+        super(Flatten, self).__init__()
+
+    def forward(self, x):
+        return x.view(x.size(0), -1)
+
+
 
 class fadein_layer(nn.Module):
     def __init__(self, config):

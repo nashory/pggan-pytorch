@@ -9,7 +9,7 @@ import torchvision.datasets as dsets
 import torchvision.transforms as transforms
 from torch.autograd import Variable
 from PIL import Image
-from custom_layers import fadein_layer, ConcatTable, minibatch_std_concat_layer
+from custom_layers import fadein_layer, ConcatTable, minibatch_std_concat_layer, Flatten
 import copy
 
 
@@ -30,6 +30,7 @@ def conv(layers, c_in, c_out, k_size, stride=1, pad=0, leaky=True, bn=False):
     return layers
 
 def linear(layers, c_in, c_out, sigmoid=True):
+    layers.append(Flatten())
     layers.append(nn.Linear(c_in, c_out))
     if sigmoid: layers.append(nn.Sigmoid())
     return layers
@@ -66,6 +67,7 @@ class Generator(nn.Module):
         self.nz = config.nz
         self.ngf = config.ngf
         self.layer_name = None
+        self.module_names = []
         self.model = self.get_init_gen()
 
     def first_block(self):
@@ -107,6 +109,7 @@ class Generator(nn.Module):
         first_block, ndim = self.first_block()
         model.add_module('first_block', first_block)
         model.add_module('to_rgb_block', self.to_rgb_block(ndim))
+        self.module_names = get_module_names(model)
         return model
     
     def grow_network(self, resl):
@@ -133,6 +136,7 @@ class Generator(nn.Module):
             new_model.add_module('concat_block', ConcatTable(prev_block, next_block))
             new_model.add_module('fadein_block', fadein_layer(self.config))
             self.model = new_model
+            self.module_names = get_module_names(self.model)
            
 
     def flush_network(self):
@@ -151,14 +155,17 @@ class Generator(nn.Module):
             new_model.add_module(self.layer_name, high_resl_block)
             new_model.add_module('to_rgb_block', high_resl_to_rgb)
             self.model = new_model
+            self.module_names = get_module_names(self.model)
         except:
             self.model = self.model
     
     def forward(self, x):
-        # if fadein layer flag == True --> flush
-        if self.model.fadein_block and self.model.fadein_block.flag_flush:
-            self.flush_network()
-        print 'forward.'
+        if 'fadein_block' in self.module_names:
+            if self.model.faein_block.flag_flush:
+                self.flush_network()
+
+        x = self.model(x.view(x.size(0), -1, 1, 1))
+        return x
 
 
         
@@ -176,15 +183,17 @@ class Discriminator(nn.Module):
         self.nc = config.nc
         self.ndf = config.ndf
         self.layer_name = None
+        self.module_names = []
         self.model = self.get_init_dis()
 
-    def last_block(self, ndim):
+    def last_block(self):
         # add minibatch_std_concat_layer later.
+        ndim = self.ndf
         layers = []
-        layers = conv(layers, self.nc, ndim, 3, 1, 1, self.flag_leaky, self.flag_bn)
+        layers = conv(layers, ndim, ndim, 3, 1, 1, self.flag_leaky, self.flag_bn)
         layers = conv(layers, ndim, ndim, 4, 1, 0, self.flag_leaky, self.flag_bn)
         layers = linear(layers, ndim, 1, self.flag_sigmoid)
-        return  nn.Sequential(*layers)
+        return  nn.Sequential(*layers), ndim
     
     def intermediate_block(self, resl):
         halving = False
@@ -198,7 +207,7 @@ class Discriminator(nn.Module):
             for i in range(resl-5):
                 ndim = ndim/2
         layers = []
-        layers.append(nn.UpsamplingNearest2d(scale_factor=2))       # scale up by factor of 2.0
+        layers.append(nn.AvgPool2d(kernel_size=2))       # scale up by factor of 2.0
         if halving:
             layers = deconv(layers, ndim, ndim, 3, 1, 1, self.flag_leaky, self.flag_bn)
             layers = deconv(layers, ndim, ndim*2, 3, 1, 1, self.flag_leaky, self.flag_bn)
@@ -207,27 +216,31 @@ class Discriminator(nn.Module):
             layers = deconv(layers, ndim, ndim, 3, 1, 1, self.flag_leaky, self.flag_bn)
         return  nn.Sequential(*layers), ndim, layer_name
     
-    def from_rgb_block(self):
+    def from_rgb_block(self, ndim):
         layers = []
-        ndim = self.ndf
         layers = conv(layers, self.nc, ndim, 1, 1, 0, self.flag_leaky, self.flag_bn)
-        layers = conv(layers, ndim, ndim, 3, 1, 1, self.flag_leaky, self.flag_bn)
-        return  nn.Sequential(*layers), ndim
+        return  nn.Sequential(*layers)
     
     def get_init_dis(self):
         model = nn.Sequential()
-        from_rgb_block, ndim = self.from_rgb_block()
-        model.add_module('from_rgb_block', from_rgb_block)
-        model.add_module('last_block', self.last_block(ndim))
+        last_block, ndim = self.last_block()
+        model.add_module('from_rgb_block', self.from_rgb_block(ndim))
+        model.add_module('last_block', last_block)
+        self.module_names = get_module_names(model)
         return model
     
-    def grow_network():
+    def grow_network(self):
         print 'grow network'
 
-    def flush_network():
+    def flush_network(self):
         print 'flush network'
-    def forward():
-        print 'forward'
+
+    def forward(self, x):
+        if 'fadein_block' in self.module_names:
+            if self.model.faein_block.flag_flush:
+                self.flush_network()
+        x = self.model(x)
+        return x
 
  
 

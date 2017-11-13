@@ -4,7 +4,9 @@ import network as net
 from math import floor, ceil
 
 import torch
+from torch.autograd import Variable
 from torch.optim import Adam
+from tqdm import tqdm
 
 # dataloader test.
 #loader = DL.dataloader(config)
@@ -33,6 +35,10 @@ class trainer:
 
         self.resl = 2           # we start from 2^2 = 4
         self.max_resl = config.max_resl
+        self.trns_tick = config.trns_tick
+        self.stab_tick = config.stab_tick
+        self.TICK = config.TICK
+        self.globalIter = 0
         
         # dataloader
         self.loader = DL.dataloader(config)
@@ -52,12 +58,14 @@ class trainer:
 
         # enable cuda
         if config.use_cuda:
-            z.cuda()
-            z_test.cuda()
-            x.cuda()
-            real_label.cuda()
-            fake_label.cuda()
-            mse = mse.cuda()
+            self.z.cuda()
+            self.z_test.cuda()
+            self.x.cuda()
+            self.real_label.cuda()
+            self.fake_label.cuda()
+            self.mse = mse.cuda()
+            self.G = self.G.cuda()
+            self.D = self.D.cuda()
             torch.cuda.manual_seed(config.random_seed)
 
 
@@ -65,38 +73,56 @@ class trainer:
 
     def train(self):
    
-        # network
-        #G = net.Generator(config)
-        #print(G.model)
-        #G.grow_network(3)
-        #print(G.model)
-        #G.flush_network()
-        #print(G.model)
-    
-        # tensor
-
-        #self.G.grow_network(3)
         print(self.G.model)
         print(self.D.model)
-
-        #self.x = self.loader.get_batch()
-
-
-
-        #data = iter(self.loader)
-        print len(self.loader)
-        #self.x = data.next()
-
 
         # optimizer
         betas = (self.config.beta1, self.config.beta2)
         if self.optimizer == 'adam':
             opt_g = Adam(self.G.parameters(), lr=self.config.lr, betas=betas, weight_decay=0.0)
-
-
-            #opt_d = Adam(self.D.parameters(), lr=self.config.lr, betas=betas, weight_decay=0.0)
+            opt_d = Adam(self.D.parameters(), lr=self.config.lr, betas=betas, weight_decay=0.0)
 
         
+        '''
+        self.z = Variable(self.z)
+        self.x = Variable(self.x)
+        self.z_test = Variable(self.z_test, volatile=True)
+        self.real_label = Variable(self.real_label)
+        self.fake_label = Variable(self.fake_label)
+        '''
+        self.z = Variable(self.z)
+        self.z_test = Variable(self.z_test, volatile=True)
+        self.real_label = Variable(self.real_label)
+        self.fake_label = Variable(self.fake_label)
+
+
+        for step in range(2, self.max_resl):
+            for iter in tqdm(range(0,(self.trns_tick+self.stab_tick)*self.TICK*2, self.loader.batchsize)):
+                self.globalIter = self.globalIter+1
+
+
+                # zero gradients.
+                self.G.zero_grad()
+                self.D.zero_grad()
+
+                # update discriminator.
+                self.x = self.loader.get_batch()
+                self.x = Variable(self.x)
+                self.z.data.resize_(self.loader.batchsize, self.nz).normal_(0.0, 1.0)
+                self.x_tilde = self.G(self.z)
+               
+                fx = self.D(self.x)
+                fx_tilde = self.D(self.x_tilde.detach())
+                loss_d = self.mse(fx, self.real_label) + self.mse(fx_tilde, self.fake_label)
+                loss_d.backward()
+                opt_d.step()
+
+                # update generator.
+                fx_tilde = self.D(self.x_tilde)
+                loss_g = self.mse(fx_tilde, self.real_label.detach())
+                loss_g.backward()
+                opt_g.step()
+
 
 
 
