@@ -47,7 +47,8 @@ parser.add_argument('--beta2', type=float, default=0.99)
 
 
 ## display and save setting.
-parser.add_argument('--use_tensorboard', type=bool, default=True)
+parser.add_argument('--use_tb', type=bool, default=True)
+parser.add_argument('--save_img_every', type=int, default=10)
 
 
 ## parse and save config.

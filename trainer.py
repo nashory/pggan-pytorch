@@ -2,12 +2,14 @@ import dataloader as DL
 from config import config
 import network as net
 from math import floor, ceil
-
+import os, sys
 import torch
 import torchvision.transforms as transforms
 from torch.autograd import Variable
 from torch.optim import Adam
 from tqdm import tqdm
+import tf_recorder as tensorboard
+import utils as utils
 
 
 class trainer:
@@ -35,11 +37,11 @@ class trainer:
         self.epoch = 0
         self.fadein = {'gen':None, 'dis':None}
         self.complete = {'gen':0, 'dis':0}
-        self.phase = {'gen':'init', 'dis':'init'}
+        self.phase = 'init'
         self.flag_flush_gen = False
         self.flag_flush_dis = False
-        self.trns_tick = 1
-        self.stab_tick = 1
+        self.trns_tick = self.config.trns_tick
+        self.stab_tick = self.config.stab_tick
         
         # network and cirterion
         self.G = net.Generator(config)
@@ -66,6 +68,12 @@ class trainer:
         
         # define tensors, and get dataloader.
         self.renew_everything()
+        
+        # tensorboard
+        self.use_tb = config.use_tb
+        if self.use_tb:
+            self.tb = tensorboard.tf_recorder()
+        
 
     def resl_scheduler(self):
         '''
@@ -85,49 +93,50 @@ class trainer:
         d_alpha = 1.0*self.batchsize/self.trns_tick/self.TICK
 
         # update alpha if fade-in layer exist.
-        if self.resl%1.0 < (self.trns_tick)*delta:
-            try:
+        if self.fadein['gen'] is not None:
+            if self.resl%1.0 < (self.trns_tick)*delta:
                 self.fadein['gen'].update_alpha(d_alpha)
                 self.complete['gen'] = self.fadein['gen'].alpha*100
-                self.phase['gen'] = 'gtrns'
-            except:
-                pass
-        if self.resl%1.0 > (self.trns_tick+self.stab_tick)*delta and self.resl%1.0 < (self.trns_tick*2 + self.stab_tick)*delta:
-            try:
+                self.phase = 'gtrns'
+            elif self.resl%1.0 >= (self.trns_tick)*delta and self.resl%1.0 < (self.trns_tick+self.stab_tick)*delta:
+                self.phase = 'gstab'
+        if self.fadein['dis'] is not None:
+            if self.resl%1.0 >= (self.trns_tick+self.stab_tick)*delta and self.resl%1.0 < (self.stab_tick + self.trns_tick*2)*delta:
                 self.fadein['dis'].update_alpha(d_alpha)
                 self.complete['dis'] = self.fadein['dis'].alpha*100
-                self.phase['dis'] = 'dtrns'
-            except:
-                pass
-        
-
+                self.phase = 'dtrns'
+            elif self.resl%1.0 >= (self.stab_tick + self.trns_tick*2)*delta:
+                self.phase = 'dstab'
+            
         prev_kimgs = self.kimgs
         self.kimgs = self.kimgs + self.batchsize
         if (self.kimgs%self.TICK) < (prev_kimgs%self.TICK):
             self.globalTick = self.globalTick + 1
-
             # increase linearly every tick, and grow network structure.
             prev_resl = floor(self.resl)
             self.resl = self.resl + delta
             self.resl = max(2, min(10.5, self.resl))        # clamping, range: 4 ~ 1024
 
             # flush network.
-            try:
-                if self.resl%1.0 >= (self.trns_tick)*delta:
-                    self.phase['gen'] = 'gstab'
-                if self.flag_flush_gen and self.resl%1.0 >= (self.trns_tick + self.stab_tick)*delta:
-                    self.G.module.flush_network()
-                    self.flag_flush_gen = False
-                    self.fadein['gen'] = None
-                if self.resl%1.0 >= (2*self.trns_tick+self.stab_tick)*delta:
-                    self.phase['dis'] = 'dstab'
-                if floor(self.resl) != prev_resl:
-                    self.D.module.flush_network()
-                    self.flag_flush_dis = False
-                    self.fadein['dis'] = None
-            except:
-                pass
-
+            if self.flag_flush_gen and self.resl%1.0 >= (self.trns_tick+self.stab_tick)*delta and prev_resl!=2:
+                if self.fadein['gen'] is not None:
+                    self.fadein['gen'].update_alpha(d_alpha)
+                    self.complete['gen'] = self.fadein['gen'].alpha*100
+                self.flag_flush_gen = False
+                self.G.module.flush_network()
+                self.fadein['gen'] = None
+                self.complete['gen'] = 0.0
+                self.phase = 'dtrns'
+            elif self.flag_flush_dis and floor(self.resl) != prev_resl and prev_resl!=2:
+                if self.fadein['dis'] is not None:
+                    self.fadein['dis'].update_alpha(d_alpha)
+                    self.complete['dis'] = self.fadein['dis'].alpha*100
+                self.flag_flush_dis = False
+                self.D.module.flush_network()
+                self.fadein['dis'] = None
+                self.complete['dis'] = 0.0
+                self.phase = 'gtrns'
+                    
             # grow network.
             if floor(self.resl) != prev_resl:
                 self.G.module.grow_network(floor(self.resl))
@@ -177,13 +186,17 @@ class trainer:
             self.opt_d = Adam(self.D.parameters(), lr=self.config.lr, betas=betas, weight_decay=0.0)
 
     def feed_interpolated_input(self, x):
-        alpha = self.complete['gen']/100.0
-        transform = transforms.Compose( [   transforms.ToPILImage(),
-                                            transforms.Scale(size=int(pow(2,floor(self.resl)-1)), interpolation=0),      # 0: nearest
-                                            transforms.Scale(size=int(pow(2,floor(self.resl))), interpolation=0),      # 0: nearest
-                                        ] )
         if self.phase == 'gtrns' and floor(self.resl)>2:
-            x_intp = torch.add(x.mul(alpha), transform(x).mul(1-alpha))
+            alpha = self.complete['gen']/100.0
+            transform = transforms.Compose( [   transforms.ToPILImage(),
+                                                transforms.Scale(size=int(pow(2,floor(self.resl)-1)), interpolation=0),      # 0: nearest
+                                                transforms.Scale(size=int(pow(2,floor(self.resl))), interpolation=0),      # 0: nearest
+                                                transforms.ToTensor(),
+                                            ] )
+            x_low = x.clone()
+            for i in range(x_low.size(0)):
+                x_low[i] = transform(x_low[i])
+            x_intp = torch.add(x.mul(alpha), x_low.mul(1-alpha))
             return x_intp
         else:
             return x
@@ -206,12 +219,7 @@ class trainer:
                 self.D.zero_grad()
 
                 # update discriminator.
-                #self.x.data = self.feed_interpolated_input(self.loader.get_batch())
-                #self.x.data = self.loader.get_batch()
-                self.x = self.loader.get_batch()
-                self.x = Variable(self.x)
-
-
+                self.x.data = self.feed_interpolated_input(self.loader.get_batch())
                 self.z.data.resize_(self.loader.batchsize, self.nz).normal_(0.0, 1.0)
                 self.x_tilde = self.G(self.z)
                
@@ -228,9 +236,38 @@ class trainer:
                 self.opt_g.step()
 
                 # logging.
-                log_msg = '[E:{0}][T:{1}][{2:6}/{3:6}]  errD: {4:.4f} | errG: {5:.4f} | [cur:{6:.3f}][resl:{7:4}][{8}/{9:.1f}%][{10}/{11:.1f}%]'.format(self.epoch, self.globalTick, self.stack, len(self.loader.dataset), loss_d.data[0], loss_g.data[0], self.resl, int(pow(2,floor(self.resl))), self.phase['gen'], self.complete['gen'], self.phase['dis'], self.complete['dis'])
+                log_msg = ' [E:{0}][T:{1}][{2:6}/{3:6}]  errD: {4:.4f} | errG: {5:.4f} | [cur:{6:.3f}][resl:{7:4}][{8}][{9:.1f}%][{10:.1f}%]'.format(self.epoch, self.globalTick, self.stack, len(self.loader.dataset), loss_d.data[0], loss_g.data[0], self.resl, int(pow(2,floor(self.resl))), self.phase, self.complete['gen'], self.complete['dis'])
                 tqdm.write(log_msg)
 
+                # save model.
+                self.snapshot('repo/model')
+
+                # save image grid.
+                if self.globalIter%self.config.save_img_every == 0:
+                    os.system('mkdir -p repo/grid')
+                    utils.save_grid_image(self.x_tilde.data, 'repo/grid/{}.jpg'.format(int(self.globalIter/self.config.save_img_every)))
+
+
+                # tensorboard visualization.
+                if self.use_tb:
+                    self.tb.add_scalar('data/loss_g', loss_g.data[0], self.globalIter)
+                    self.tb.add_scalar('data/loss_d', loss_d.data[0], self.globalIter)
+                    self.tb.add_image_grid('grid/x_tilde', 4, self.x_tilde.data.float(), self.globalIter)
+
+
+    def snapshot(self, path):
+        if not os.path.exists(path):
+            os.system('mkdir -p {}'.format(path))
+        # save every 100 tick if the network is in stab phase.
+        ndis = 'dis_R{}_T{}.pth'.format(int(floor(self.resl)), self.globalTick)
+        ngen = 'gen_R{}_T{}.pth'.format(int(floor(self.resl)), self.globalTick)
+        if self.globalTick%100==0:
+            if (self.phase == 'gstab' or self.phase=='dstab'):
+                save_path = os.path.join(path, ndis)
+                utils.save_model(self.D, save_path)
+                save_path = os.path.join(path, ndis)
+                utils.save_model(self.D, save_path)
+                print('[snapshot] model saved @ {}'.format(path))
 
 
 ## perform training.

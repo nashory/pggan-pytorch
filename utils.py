@@ -4,77 +4,63 @@
 import os
 import torch
 import numpy as np
-from io import BytesIO
-import scipy.misc
 import torchvision
 import torchvision.transforms as transforms
-from torch.utils.data import DataLoader
-from torchvision.datasets import ImageFolder
-from torch.autograd import Variable
-from matplotlib import pyplot as plt
+import torchvision.utils as vutils
 import time
 
 
-class Timer(object):
-    def __init__(self):
-        self.total_time = 0.
-        self.calls = 0
-        self.start_time = 0.
-        self.diff = 0.
-        self.average_time = 0.
 
-    def tic(self):
-        self.start_time = time.time()
-
-    def toc(self, average=True):
-        self.diff = time.time() - self.start_time
-        self.total_time += self.diff
-        self.calls += 1
-        self.average_time = self.total_time / self.calls
-        if average:
-            return self.average_time
-        else:
-            return self.diff
-
-    def clear(self):
-        self.total_time = 0.
-        self.calls = 0
-        self.start_time = 0.
-        self.diff = 0.
-        self.average_time = 0.
+def resize(x, size):
+    transform = transforms.Compose([
+        transforms.ToPILImage(),
+        transforms.Scale(size),
+        transforms.ToTensor(),
+        ])
+    return transform(x)
 
 
+def make_image_grid(x, ngrid):
+    x = x.clone().cpu()
+    if pow(ngrid,2) < x.size(0):
+        grid = vutils.make_grid(x[:ngrid*ngrid], nrow=ngrid, padding=0, normalize=True, scale_each=False)
+    else:
+        grid = torch.FloatTensor(ngrid*ngrid, x.size(1), x.size(2), x.size(3)).fill_(1)
+        grid[:x.size(0)].copy(x)
+        grid = vutils.make_grid(grid, nrow=ngrid, padding=0, normalize=True, scale_each=False)
+    return grid
+        
 
 
+def save_image_single(x, size, path):
+    from PIL import Image
+    transform = transforms.Compose([
+        transforms.ToPILImage(),
+        transforms.Scale(size),
+        transforms.ToTensor(),
+        ])
+    im = transform(x[0])
+    ndarr = im.mul(255).clamp(0, 255).byte().permute(1, 2, 0).numpy()
+    im = Image.fromarray(ndarr)
+    im.save(path)
 
-def make_path(config):
-    if not os.path.exists(config.model_path):
-        os.makedirs(config.model_path)
-    if not os.path.exists(config.log_path):
-        os.makedirs(config.log_path)
-    if not os.path.exists(config.image_path):
-        os.makedirs(config.image_path)
+
+def save_grid_image(x, path, imsize=1024, ngrid=4):
+    from PIL import Image
+    grid = make_image_grid(x, ngrid)
+    ndarr = grid.mul(255).clamp(0, 255).byte().permute(1, 2, 0).numpy()
+    im = Image.fromarray(ndarr)
+    im = im.resize((imsize,imsize), Image.ANTIALIAS)
+    im.save(path)
+
+
 
 def load_model(net, path):
-    """ load model
-    """
     net.load_state_dict(torch.load(path))
 
 def save_model(net, path):
-    """ save model
-    """
     torch.save(net.state_dict(), path)
 
-def save_image(tensor, filename, nrow=8, padding=2,
-               normalize=False, range=None, scale_each=False):
-    from PIL import Image
-    tensor = tensor.cpu()
-    grid = torchvision.utils.make_grid(tensor, nrow=nrow, padding=padding,
-                            normalize=normalize, range=range, scale_each=True)
-
-    ndarr = grid.mul(255).clamp(0, 255).byte().permute(1, 2, 0).numpy()
-    im = Image.fromarray(ndarr)
-    im.save(filename)
 
 def make_summary(writer, key, value, step):
     if hasattr(value, '__len__'):
