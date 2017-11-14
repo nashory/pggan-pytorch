@@ -6,32 +6,45 @@ import torch
 import numpy as np
 from io import BytesIO
 import scipy.misc
-import tensorflow as tf
 import torchvision
 import torchvision.transforms as transforms
 from torch.utils.data import DataLoader
 from torchvision.datasets import ImageFolder
 from torch.autograd import Variable
 from matplotlib import pyplot as plt
+import time
 
-def get_loader(config):
-    root = os.path.join(os.path.abspath(os.curdir), config.dataset)
-    print('[*] Load data from {0}.'.format(root))
-    dataset = ImageFolder(
-        root=root,
-        transform=transforms.Compose([
-            transforms.CenterCrop(160),
-            transforms.Scale(size=config.image_size),
-            transforms.ToTensor(),
-        ])
-    )
-    dataloader = DataLoader(
-        dataset=dataset,
-        batch_size=config.batch_size,
-        shuffle=True,
-        num_workers=config.num_workers
-    )
-    return dataloader
+
+class Timer(object):
+    def __init__(self):
+        self.total_time = 0.
+        self.calls = 0
+        self.start_time = 0.
+        self.diff = 0.
+        self.average_time = 0.
+
+    def tic(self):
+        self.start_time = time.time()
+
+    def toc(self, average=True):
+        self.diff = time.time() - self.start_time
+        self.total_time += self.diff
+        self.calls += 1
+        self.average_time = self.total_time / self.calls
+        if average:
+            return self.average_time
+        else:
+            return self.diff
+
+    def clear(self):
+        self.total_time = 0.
+        self.calls = 0
+        self.start_time = 0.
+        self.diff = 0.
+        self.average_time = 0.
+
+
+
 
 
 def make_path(config):
