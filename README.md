@@ -42,25 +42,25 @@ __[step 2.] Prepare environment using virtualenv__
 
 
 
-__[step 3.] Run training__   
-  + edit `config.py` to change parameters. (don't forget to change path to training images)
-  + specify which gpu devices to be used, and change "n_gpu" option in `config.py` to support Multi-GPU training.
-  + run and enjoy!
+__[step 3.] Run training__      
++ edit `config.py` to change parameters. (don't forget to change path to training images)
++ specify which gpu devices to be used, and change "n_gpu" option in `config.py` to support Multi-GPU training.
++ run and enjoy!
  
   ~~~~
   (example)
   If using Single-GPU (device_id = 0):
   $ vim config.py   -->   change "n_gpu=1"
-  $ CUDA_VISIBLE_DEVICES=0 python run.py
+  $ CUDA_VISIBLE_DEVICES=0 python trainer.py
   
   If using Multi-GPUs (device id = 1,3,7):
   $ vim config.py   -->   change "n_gpu=3"
-  $ CUDA_VISIBLE_DEVICES=1,3,7 python run.py
+  $ CUDA_VISIBLE_DEVICES=1,3,7 python trainer.py
   ~~~~
   
   
-__[step 4.] Display on tensorboard__  
-  + you can check the results on tensorboard.
+__[step 4.] Display on tensorboard__   
++ you can check the results on tensorboard.
   ~~~
   $ tensorboard --logdir runs --port 8888
   $ <host_ip>:8888 at your browser.
