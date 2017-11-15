@@ -45,9 +45,12 @@ class fadein_layer(nn.Module):
 
 
 class minibatch_std_concat_layer(nn.Module):
-    def __init__(self, config):
-        print 'minibatch std concat layer'
-
+    def __init__(self):
+        super(minibatch_std_concat_layer, self).__init__()
+        
+    def forward(self, x):
+        std = x.clone().std(1, keepdim=True)
+        return torch.cat((x, std), 1)
 
 
 

@@ -196,9 +196,11 @@ class Discriminator(nn.Module):
         # add minibatch_std_concat_layer later.
         ndim = self.ndf
         layers = []
-        layers = conv(layers, ndim, ndim, 3, 1, 1, self.flag_leaky, self.flag_bn)
+        layers.append(minibatch_std_concat_layer())
+        layers = conv(layers, ndim+1, ndim, 3, 1, 1, self.flag_leaky, self.flag_bn)
         layers = conv(layers, ndim, ndim, 4, 1, 0, self.flag_leaky, self.flag_bn)
         layers = linear(layers, ndim, 1, self.flag_sigmoid)
+        print layers
         return  nn.Sequential(*layers), ndim
     
     def intermediate_block(self, resl):
