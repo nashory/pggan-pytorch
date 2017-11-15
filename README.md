@@ -61,6 +61,10 @@ __[step 3.] Run training__
   
 __[step 4.] Display on tensorboard__   
 + you can check the results on tensorboard.
+
+<p align="center"><img src="https://puu.sh/ympU0/c38f4e7d33.png" width="700"></p>   
+<p align="center"><img src="https://puu.sh/ympUe/bf9b53dea8.png" width="700" align="center"></p>   
+
   ~~~
   $ tensorboard --logdir repo/tensorboard --port 8888
   $ <host_ip>:8888 at your browser.
@@ -72,6 +76,7 @@ to be updated ...
 
 ## To-Do List (will be implemented soon)
 - [X] Equalized learning rate (weight normalization)
+- [X] Pixel-wise normalization
 - [X] Support WGAN-GP loss
 
 
