@@ -13,9 +13,9 @@ class tf_recorder:
     def __init__(self):
         os.system('mkdir -p repo/tensorboard')
         for i in range(1000):
-            targ = 'repo/tensorboard/try_{}'.format(i)
-            if not os.path.exists(targ):
-                self.writer = SummaryWriter(targ)
+            self.targ = 'repo/tensorboard/try_{}'.format(i)
+            if not os.path.exists(self.targ):
+                self.writer = SummaryWriter(self.targ)
                 break
                 
     def add_scalar(self, index, val, niter):
@@ -30,6 +30,10 @@ class tf_recorder:
 
     def add_image_single(self, index, x, niter):
         self.writer.add_image(index, x, niter)
+
+    def add_graph(self, index, x_input, model):
+        torch.onnx.export(model, x_input, os.path.join(self.targ, "{}.proto".format(index)), verbose=True)
+        self.writer.add_graph_onnx(os.path.join(self.targ, "{}.proto".format(index)))
 
     def export_json(self, out_file):
         self.writer.export_scalars_to_json(out_file)
