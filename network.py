@@ -3,26 +3,22 @@ import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
 from torch.autograd import Variable
-import torch 
-import torch.nn as nn
-import torchvision.datasets as dsets
-import torchvision.transforms as transforms
-from torch.autograd import Variable
-from PIL import Image
 from custom_layers import fadein_layer, ConcatTable, minibatch_std_concat_layer, Flatten
 import copy
 
 
 # defined for code simplicity.
-def deconv(layers, c_in, c_out, k_size, stride=1, pad=0, leaky=True, bn=False):
-    layers.append(nn.ConvTranspose2d(c_in, c_out, k_size, stride, pad))
+def deconv(layers, c_in, c_out, k_size, stride=1, pad=0, leaky=True, bn=False, wn=True):
+    if wn:  layers.append(nn.utils.weight_norm(nn.ConvTranspose2d(c_in, c_out, k_size, stride, pad), name='weight'))
+    else:   layers.append(nn.ConvTranspose2d(c_in, c_out, k_size, stride, pad))
     if bn:      layers.append(nn.BatchNorm2d(c_out))
     if leaky:   layers.append(nn.LeakyReLU(0.2))
     else:       layers.append(nn.ReLU())
     return layers
 
-def conv(layers, c_in, c_out, k_size, stride=1, pad=0, leaky=True, bn=False):
-    layers.append(nn.Conv2d(c_in, c_out, k_size, stride, pad))
+def conv(layers, c_in, c_out, k_size, stride=1, pad=0, leaky=True, bn=False, wn=True):
+    if wn:  layers.append(nn.utils.weight_norm(nn.Conv2d(c_in, c_out, k_size, stride, pad), name='weight'))
+    else:   layers.append(nn.Conv2d(c_in, c_out, k_size, stride, pad))
     if bn:      layers.append(nn.BatchNorm2d(c_out))
     if leaky:   layers.append(nn.LeakyReLU(0.2))
     else:       layers.append(nn.ReLU())
@@ -71,8 +67,8 @@ class Generator(nn.Module):
     def first_block(self):
         layers = []
         ndim = self.ngf
-        layers = deconv(layers, self.nz, ndim, 4, 1, 0, self.flag_leaky, self.flag_bn)
-        layers = deconv(layers, ndim, ndim, 3, 1, 1, self.flag_leaky, self.flag_bn)
+        layers = deconv(layers, self.nz, ndim, 4, 1, 0, self.flag_leaky, self.flag_bn, self.flag_wn)
+        layers = deconv(layers, ndim, ndim, 3, 1, 1, self.flag_leaky, self.flag_bn, self.flag_wn)
         return  nn.Sequential(*layers), ndim
 
     def intermediate_block(self, resl):
@@ -89,16 +85,19 @@ class Generator(nn.Module):
         layers = []
         layers.append(nn.Upsample(scale_factor=2, mode='nearest'))       # scale up by factor of 2.0
         if halving:
-            layers = deconv(layers, ndim*2, ndim, 3, 1, 1, self.flag_leaky, self.flag_bn)
-            layers = deconv(layers, ndim, ndim, 3, 1, 1, self.flag_leaky, self.flag_bn)
+            layers = deconv(layers, ndim*2, ndim, 3, 1, 1, self.flag_leaky, self.flag_bn, self.flag_wn)
+            layers = deconv(layers, ndim, ndim, 3, 1, 1, self.flag_leaky, self.flag_bn, self.flag_wn)
         else:
-            layers = deconv(layers, ndim, ndim, 3, 1, 1, self.flag_leaky, self.flag_bn)
-            layers = deconv(layers, ndim, ndim, 3, 1, 1, self.flag_leaky, self.flag_bn)
+            layers = deconv(layers, ndim, ndim, 3, 1, 1, self.flag_leaky, self.flag_bn, self.flag_wn)
+            layers = deconv(layers, ndim, ndim, 3, 1, 1, self.flag_leaky, self.flag_bn, self.flag_wn)
         return  nn.Sequential(*layers), ndim, layer_name
     
     def to_rgb_block(self, c_in):
         layers = []
-        layers.append(nn.ConvTranspose2d(c_in, self.nc, 1, 1, 0))
+        if self.flag_wn:    
+            layers.append(nn.utils.weight_norm(nn.ConvTranspose2d(c_in, self.nc, 1, 1, 0), name='weight'))
+        else:   
+            layers.append(nn.ConvTranspose2d(c_in, self.nc, 1, 1, 0))
         if self.flag_tanh:  layers.append(nn.Tanh())
         return nn.Sequential(*layers)
 
@@ -197,10 +196,9 @@ class Discriminator(nn.Module):
         ndim = self.ndf
         layers = []
         layers.append(minibatch_std_concat_layer())
-        layers = conv(layers, ndim+1, ndim, 3, 1, 1, self.flag_leaky, self.flag_bn)
-        layers = conv(layers, ndim, ndim, 4, 1, 0, self.flag_leaky, self.flag_bn)
+        layers = conv(layers, ndim+1, ndim, 3, 1, 1, self.flag_leaky, self.flag_bn, self.flag_wn)
+        layers = conv(layers, ndim, ndim, 4, 1, 0, self.flag_leaky, self.flag_bn, self.flag_wn)
         layers = linear(layers, ndim, 1, self.flag_sigmoid)
-        print layers
         return  nn.Sequential(*layers), ndim
     
     def intermediate_block(self, resl):
@@ -216,18 +214,18 @@ class Discriminator(nn.Module):
                 ndim = ndim/2
         layers = []
         if halving:
-            layers = deconv(layers, ndim, ndim, 3, 1, 1, self.flag_leaky, self.flag_bn)
-            layers = deconv(layers, ndim, ndim*2, 3, 1, 1, self.flag_leaky, self.flag_bn)
+            layers = deconv(layers, ndim, ndim, 3, 1, 1, self.flag_leaky, self.flag_bn, self.flag_wn)
+            layers = deconv(layers, ndim, ndim*2, 3, 1, 1, self.flag_leaky, self.flag_bn, self.flag_wn)
         else:
-            layers = deconv(layers, ndim, ndim, 3, 1, 1, self.flag_leaky, self.flag_bn)
-            layers = deconv(layers, ndim, ndim, 3, 1, 1, self.flag_leaky, self.flag_bn)
+            layers = deconv(layers, ndim, ndim, 3, 1, 1, self.flag_leaky, self.flag_bn, self.flag_wn)
+            layers = deconv(layers, ndim, ndim, 3, 1, 1, self.flag_leaky, self.flag_bn, self.flag_wn)
         
         layers.append(nn.AvgPool2d(kernel_size=2))       # scale up by factor of 2.0
         return  nn.Sequential(*layers), ndim, layer_name
     
     def from_rgb_block(self, ndim):
         layers = []
-        layers = conv(layers, self.nc, ndim, 1, 1, 0, self.flag_leaky, self.flag_bn)
+        layers = conv(layers, self.nc, ndim, 1, 1, 0, self.flag_leaky, self.flag_bn, self.flag_wn)
         return  nn.Sequential(*layers)
     
     def get_init_dis(self):
