@@ -6,7 +6,7 @@ import time
 parser = argparse.ArgumentParser('PGGAN')
 
 ## general settings.
-parser.add_argument('--train_data_root', type=str, default='/home1/irteam/nashory/data/CelebA/Img')
+parser.add_argument('--train_data_root', type=str, default='/home1/work/nashory/data/CelebA/Img')
 parser.add_argument('--random_seed', type=int, default=int(time.time()))
 parser.add_argument('--n_gpu', type=int, default=1)         # for Multi-GPU training.
 
@@ -28,11 +28,11 @@ parser.add_argument('--stab_tick', type=int, default=100)        # stabilization
 
 
 ## network structure.
-parser.add_argument('--flag_wn', type=bool, default=False)
+parser.add_argument('--flag_wn', type=bool, default=True)
 parser.add_argument('--flag_bn', type=bool, default=False)
 parser.add_argument('--flag_pixelwise', type=bool, default=False)
 parser.add_argument('--flag_leaky', type=bool, default=True)
-parser.add_argument('--flag_tanh', type=bool, default=True)
+parser.add_argument('--flag_tanh', type=bool, default=False)
 parser.add_argument('--flag_sigmoid', type=bool, default=True)
 
 
