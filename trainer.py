@@ -123,7 +123,8 @@ class trainer:
                     self.fadein['gen'].update_alpha(d_alpha)
                     self.complete['gen'] = self.fadein['gen'].alpha*100
                 self.flag_flush_gen = False
-                self.G.module.flush_network()
+                self.G.module.flush_network()   # flush and,
+                self.G.module.freeze_layers()   # freeze.
                 self.fadein['gen'] = None
                 self.complete['gen'] = 0.0
                 self.phase = 'dtrns'
@@ -132,13 +133,18 @@ class trainer:
                     self.fadein['dis'].update_alpha(d_alpha)
                     self.complete['dis'] = self.fadein['dis'].alpha*100
                 self.flag_flush_dis = False
-                self.D.module.flush_network()
+                self.D.module.flush_network()   # flush and,
+                self.D.module.freeze_layers()   # freeze.
                 self.fadein['dis'] = None
                 self.complete['dis'] = 0.0
                 self.phase = 'gtrns'
                     
             # grow network.
             if floor(self.resl) != prev_resl:
+                if prev_resl==2:
+                    self.G.module.freeze_layers()   # freeze.
+                    self.D.module.freeze_layers()   # freeze.
+                    
                 self.G.module.grow_network(floor(self.resl))
                 self.D.module.grow_network(floor(self.resl))
                 self.renew_everything()
@@ -179,11 +185,6 @@ class trainer:
         self.real_label = Variable(self.real_label)
         self.fake_label = Variable(self.fake_label)
         
-        # renew optimizer
-        betas = (self.config.beta1, self.config.beta2)
-        if self.optimizer == 'adam':
-            self.opt_g = Adam(self.G.parameters(), lr=self.config.lr, betas=betas, weight_decay=0.0)
-            self.opt_d = Adam(self.D.parameters(), lr=self.config.lr, betas=betas, weight_decay=0.0)
 
     def feed_interpolated_input(self, x):
         if self.phase == 'gtrns' and floor(self.resl)>2:
@@ -203,6 +204,13 @@ class trainer:
 
 
     def train(self):
+        
+        # optimizer
+        betas = (self.config.beta1, self.config.beta2)
+        if self.optimizer == 'adam':
+            self.opt_g = Adam(filter(lambda p: p.requires_grad, self.G.parameters()), lr=self.config.lr, betas=betas, weight_decay=0.0)
+            self.opt_d = Adam(filter(lambda p: p.requires_grad, self.D.parameters()), lr=self.config.lr, betas=betas, weight_decay=0.0)
+        
         for step in range(2, self.max_resl):
             for iter in tqdm(range(0,(self.trns_tick*2+self.stab_tick*2)*self.TICK, self.loader.batchsize)):
                 self.globalIter = self.globalIter+1
@@ -244,8 +252,11 @@ class trainer:
 
                 # save image grid.
                 if self.globalIter%self.config.save_img_every == 0:
-                    os.system('mkdir -p repo/grid')
-                    utils.save_grid_image(self.x_tilde.data, 'repo/grid/{}.jpg'.format(int(self.globalIter/self.config.save_img_every)))
+                    x_test = self.G(self.z_test)
+                    os.system('mkdir -p repo/save/grid')
+                    utils.save_image_grid(x_test.data, 'repo/save/grid/{}.jpg'.format(int(self.globalIter/self.config.save_img_every)))
+                    os.system('mkdir -p repo/save/resl_{}'.format(int(floor(self.resl))))
+                    utils.save_image_single(x_test.data, 'repo/save/resl_{}/{}.jpg'.format(int(floor(self.resl)),int(self.globalIter/self.config.save_img_every)))
 
 
                 # tensorboard visualization.

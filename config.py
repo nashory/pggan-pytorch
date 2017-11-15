@@ -7,8 +7,7 @@ parser = argparse.ArgumentParser('PGGAN')
 
 ## general settings.
 parser.add_argument('--train_data_root', type=str, default='/home1/work/nashory/data/CelebA/Img')
-#parser.add_argument('--random_seed', type=int, default=int(time.time()))
-parser.add_argument('--random_seed', type=int, default=12345)
+parser.add_argument('--random_seed', type=int, default=int(time.time()))
 parser.add_argument('--n_gpu', type=int, default=1)         # for Multi-GPU training.
 
 

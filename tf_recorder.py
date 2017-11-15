@@ -5,13 +5,19 @@ import torchvision.models as models
 import utils as utils
 from torchvision import datasets
 from tensorboardX import SummaryWriter
-
+import os, sys
+import utils as utils
 
 
 class tf_recorder:
     def __init__(self):
-        self.writer = SummaryWriter()
-    
+        os.system('mkdir -p repo/tensorboard')
+        for i in range(1000):
+            targ = 'repo/tensorboard/try_{}'.format(i)
+            if not os.path.exists(targ):
+                self.writer = SummaryWriter(targ)
+                break
+                
     def add_scalar(self, index, val, niter):
         self.writer.add_scalar(index, val, niter)
 

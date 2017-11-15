@@ -157,8 +157,17 @@ class Generator(nn.Module):
             new_model.add_module('to_rgb_block', high_resl_to_rgb)
             self.model = new_model
             self.module_names = get_module_names(self.model)
+            
+
         except:
             self.model = self.model
+
+    def freeze_layers(self):
+        # let's freeze pretrained blocks.
+        print('freeze pretrained weights ... ')
+        for param in self.model.parameters():
+            param.requires_grad = False
+
     
     def forward(self, x):
         x = self.model(x.view(x.size(0), -1, 1, 1))
@@ -278,6 +287,12 @@ class Discriminator(nn.Module):
             self.module_names = get_module_names(self.model)
         except:
             self.model = self.model
+    
+    def freeze_layers(self):
+        # let's freeze pretrained blocks.
+        print('freeze pretrained weights ... ')
+        for param in self.model.parameters():
+            param.requires_grad = False
 
     def forward(self, x):
         x = self.model(x)
