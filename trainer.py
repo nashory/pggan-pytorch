@@ -161,7 +161,6 @@ class trainer:
         
         # define tensors
         self.z = torch.FloatTensor(self.loader.batchsize, self.nz)
-        self.z_test = torch.FloatTensor(self.loader.batchsize, self.nz)
         self.x = torch.FloatTensor(self.loader.batchsize, 3, self.loader.imsize, self.loader.imsize)
         self.x_tilde = torch.FloatTensor(self.loader.batchsize, 3, self.loader.imsize, self.loader.imsize)
         self.real_label = torch.FloatTensor(self.loader.batchsize).fill_(1)
@@ -170,7 +169,6 @@ class trainer:
         # enable cuda
         if self.use_cuda:
             self.z = self.z.cuda()
-            self.z_test = self.z_test.cuda()
             self.x = self.x.cuda()
             self.x_tilde = self.x.cuda()
             self.real_label = self.real_label.cuda()
@@ -181,7 +179,6 @@ class trainer:
         self.x = Variable(self.x)
         self.x_tilde = Variable(self.x_tilde)
         self.z = Variable(self.z)
-        self.z_test = Variable(self.z_test, volatile=True)
         self.real_label = Variable(self.real_label)
         self.fake_label = Variable(self.fake_label)
         
@@ -210,6 +207,14 @@ class trainer:
         if self.optimizer == 'adam':
             self.opt_g = Adam(filter(lambda p: p.requires_grad, self.G.parameters()), lr=self.config.lr, betas=betas, weight_decay=0.0)
             self.opt_d = Adam(filter(lambda p: p.requires_grad, self.D.parameters()), lr=self.config.lr, betas=betas, weight_decay=0.0)
+        
+        # noise for test.
+        self.z_test = torch.FloatTensor(self.loader.batchsize, self.nz)
+        if self.use_cuda:
+            self.z_test = self.z_test.cuda()
+        self.z_test = Variable(self.z_test, volatile=True)
+        self.z_test.data.resize_(self.loader.batchsize, self.nz).normal_(0.0, 1.0)
+        
         
         for step in range(2, self.max_resl):
             for iter in tqdm(range(0,(self.trns_tick*2+self.stab_tick*2)*self.TICK, self.loader.batchsize)):
@@ -261,9 +266,12 @@ class trainer:
 
                 # tensorboard visualization.
                 if self.use_tb:
+                    x_test = self.G(self.z_test)
                     self.tb.add_scalar('data/loss_g', loss_g.data[0], self.globalIter)
                     self.tb.add_scalar('data/loss_d', loss_d.data[0], self.globalIter)
+                    self.tb.add_image_grid('grid/x_test', 4, x_test.data.float(), self.globalIter)
                     self.tb.add_image_grid('grid/x_tilde', 4, self.x_tilde.data.float(), self.globalIter)
+                    self.tb.add_image_grid('grid/x_intp', 1, self.x.data.float(), self.globalIter)
 
 
     def snapshot(self, path):
