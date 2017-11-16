@@ -30,14 +30,14 @@ def linear(layers, c_in, c_out, sigmoid=True):
     if sigmoid: layers.append(nn.Sigmoid())
     return layers
 
-
-def copy_weights(from_module, to_module):
-    for k, v in to_module.state_dict().iteritems():
-        try:
-            to_module[k] = from_module[k]
-        except:
-            print 'module name does not match!!!'
-    return to_module
+    
+def deepcopy_module(module, target):
+    new_module = nn.Sequential()
+    for name, m in module.named_children():
+        if name == target:
+            new_module.add_module(name, m)                          # make new structure and,
+            new_module[-1].load_state_dict(m.state_dict())         # copy weights
+    return new_module
 
 def get_module_names(model):
     names = []
@@ -120,7 +120,7 @@ class Generator(nn.Module):
             
         if resl >= 3 and resl <= 9:
             print 'growing network[{}x{} to {}x{}]. It may take few seconds...'.format(pow(2,resl-1), pow(2,resl-1), pow(2,resl), pow(2,resl))
-            low_resl_to_rgb = copy.deepcopy(self.model.to_rgb_block)     # make deep copy of the last block
+            low_resl_to_rgb = deepcopy_module(self.model, 'to_rgb_block')
             prev_block = nn.Sequential()
             prev_block.add_module('low_resl_upsample', nn.Upsample(scale_factor=2, mode='nearest'))
             prev_block.add_module('low_resl_to_rgb', low_resl_to_rgb)
@@ -135,15 +135,14 @@ class Generator(nn.Module):
             self.model = None
             self.model = new_model
             self.module_names = get_module_names(self.model)
-        print(self.model)
            
 
     def flush_network(self):
         try:
             print('flushing network... It may take few seconds...')
             # make deep copy and paste.
-            high_resl_block = copy.deepcopy(self.model.concat_block.layer2.high_resl_block)
-            high_resl_to_rgb = copy.deepcopy(self.model.concat_block.layer2.high_resl_to_rgb)
+            high_resl_block = deepcopy_module(self.model.concat_block.layer2, 'high_resl_block')
+            high_resl_to_rgb = deepcopy_module(self.model.concat_block.layer2, 'high_resl_to_rgb')
            
             new_model = nn.Sequential()
             for name, module in self.model.named_children():
@@ -156,10 +155,12 @@ class Generator(nn.Module):
             new_model.add_module('to_rgb_block', high_resl_to_rgb)
             self.model = new_model
             self.module_names = get_module_names(self.model)
+            print(self.model)
             
 
         except:
             self.model = self.model
+            print(self.model)
 
     def freeze_layers(self):
         # let's freeze pretrained blocks.
@@ -236,11 +237,12 @@ class Discriminator(nn.Module):
         self.module_names = get_module_names(model)
         return model
     
+
     def grow_network(self, resl):
             
         if resl >= 3 and resl <= 9:
             print 'growing network[{}x{} to {}x{}]. It may take few seconds...'.format(pow(2,resl-1), pow(2,resl-1), pow(2,resl), pow(2,resl))
-            low_resl_from_rgb = copy.deepcopy(self.model.from_rgb_block)     # make deep copy of the last block
+            low_resl_from_rgb = deepcopy_module(self.model, 'from_rgb_block')
             prev_block = nn.Sequential()
             prev_block.add_module('low_resl_downsample', nn.AvgPool2d(kernel_size=2))
             prev_block.add_module('low_resl_from_rgb', low_resl_from_rgb)
@@ -263,14 +265,13 @@ class Discriminator(nn.Module):
             self.model = None
             self.model = new_model
             self.module_names = get_module_names(self.model)
-        print(self.model)
 
     def flush_network(self):
         try:
             print('flushing network... It may take few seconds...')
             # make deep copy and paste.
-            high_resl_block = copy.deepcopy(self.model.concat_block.layer2.high_resl_block)
-            high_resl_from_rgb = copy.deepcopy(self.model.concat_block.layer2.high_resl_from_rgb)
+            high_resl_block = deepcopy_module(self.model.concat_block.layer2, 'high_resl_block')
+            high_resl_from_rgb = deepcopy_module(self.model.concat_block.layer2, 'high_resl_from_rgb')
            
             # add the high resolution block.
             new_model = nn.Sequential()
@@ -285,8 +286,10 @@ class Discriminator(nn.Module):
 
             self.model = new_model
             self.module_names = get_module_names(self.model)
+            print new_model
         except:
             self.model = self.model
+            print self.model
     
     def freeze_layers(self):
         # let's freeze pretrained blocks.
