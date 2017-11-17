@@ -26,7 +26,7 @@ def make_image_grid(x, ngrid):
         grid = make_grid(x[:ngrid*ngrid], nrow=ngrid, padding=0, normalize=True, scale_each=False)
     else:
         grid = torch.FloatTensor(ngrid*ngrid, x.size(1), x.size(2), x.size(3)).fill_(1)
-        grid[:x.size(0)].copy(x)
+        grid[:x.size(0)].copy_(x)
         grid = make_grid(grid, nrow=ngrid, padding=0, normalize=True, scale_each=False)
     return grid
 

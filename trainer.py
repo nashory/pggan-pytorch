@@ -124,7 +124,7 @@ class trainer:
                     self.complete['gen'] = self.fadein['gen'].alpha*100
                 self.flag_flush_gen = False
                 self.G.module.flush_network()   # flush and,
-                self.G.module.freeze_layers()   # freeze.
+                #self.G.module.freeze_layers()   # freeze.
                 self.fadein['gen'] = None
                 self.complete['gen'] = 0.0
                 self.phase = 'dtrns'
@@ -134,16 +134,16 @@ class trainer:
                     self.complete['dis'] = self.fadein['dis'].alpha*100
                 self.flag_flush_dis = False
                 self.D.module.flush_network()   # flush and,
-                self.D.module.freeze_layers()   # freeze.
+                #self.D.module.freeze_layers()   # freeze.
                 self.fadein['dis'] = None
                 self.complete['dis'] = 0.0
                 self.phase = 'gtrns'
                     
             # grow network.
             if floor(self.resl) != prev_resl:
-                if prev_resl==2:
-                    self.G.module.freeze_layers()   # freeze.
-                    self.D.module.freeze_layers()   # freeze.
+                #if prev_resl==2:
+                #    self.G.module.freeze_layers()   # freeze.
+                #    self.D.module.freeze_layers()   # freeze.
                     
                 self.G.module.grow_network(floor(self.resl))
                 self.D.module.grow_network(floor(self.resl))
@@ -191,9 +191,9 @@ class trainer:
                                                 transforms.Scale(size=int(pow(2,floor(self.resl))), interpolation=0),      # 0: nearest
                                                 transforms.ToTensor(),
                                             ] )
-            x_low = x.clone()
+            x_low = x.clone().add(1).mul(0.5)
             for i in range(x_low.size(0)):
-                x_low[i] = transform(x_low[i])
+                x_low[i] = transform(x_low[i]).mul(2).add(-1)
             x_intp = torch.add(x.mul(alpha), x_low.mul(1-alpha))
             return x_intp
         else:
@@ -222,7 +222,7 @@ class trainer:
                 self.stack = self.stack + self.loader.batchsize
                 if self.stack > ceil(len(self.loader.dataset)):
                     self.epoch = self.epoch + 1
-                    self.stack = self.stack%(ceil(len(self.loader.dataset)))
+                    self.stack = int(self.stack%(ceil(len(self.loader.dataset))))
 
                 # reslolution scheduler.
                 self.resl_scheduler()
@@ -269,6 +269,7 @@ class trainer:
                     x_test = self.G(self.z_test)
                     self.tb.add_scalar('data/loss_g', loss_g.data[0], self.globalIter)
                     self.tb.add_scalar('data/loss_d', loss_d.data[0], self.globalIter)
+                    self.tb.add_scalar('tick/globalTick', int(self.globalTick), self.globalIter)
                     self.tb.add_image_grid('grid/x_test', 4, x_test.data.float(), self.globalIter)
                     self.tb.add_image_grid('grid/x_tilde', 4, self.x_tilde.data.float(), self.globalIter)
                     self.tb.add_image_grid('grid/x_intp', 1, self.x.data.float(), self.globalIter)
@@ -280,13 +281,14 @@ class trainer:
         # save every 100 tick if the network is in stab phase.
         ndis = 'dis_R{}_T{}.pth'.format(int(floor(self.resl)), self.globalTick)
         ngen = 'gen_R{}_T{}.pth'.format(int(floor(self.resl)), self.globalTick)
-        if self.globalTick%100==0:
+        if self.globalTick%50==0:
             if (self.phase == 'gstab' or self.phase=='dstab'):
                 save_path = os.path.join(path, ndis)
-                utils.save_model(self.D, save_path)
-                save_path = os.path.join(path, ndis)
-                utils.save_model(self.D, save_path)
-                print('[snapshot] model saved @ {}'.format(path))
+                if not os.path.exists(save_path):
+                    utils.save_model(self.D, save_path)
+                    save_path = os.path.join(path, ndis)
+                    utils.save_model(self.D, save_path)
+                    print('[snapshot] model saved @ {}'.format(path))
 
 
 ## perform training.
