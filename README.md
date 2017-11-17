@@ -78,13 +78,15 @@ The result of higher resolution will be updated soon.
 <img src="https://github.com/nashory/gifs/blob/pggan-pytorch/8_to_16.gif?raw=true" width="430" height="430"> <img src="https://github.com/nashory/gifs/blob/pggan-pytorch/16_to_32.gif?raw=true" width="430" height="430">   
 
 ## To-Do List (will be implemented soon)
-- [X] Equalized learning rate (weight normalization)
-- [X] Pixel-wise normalization
 - [X] Support WGAN-GP loss
+- [X] training resume
+- [X] loading CelebA-HQ dataset (for 512x512 and 1024x0124 training)
 
 
 ## Acknowledgement
 + [tkarras/progressive_growing_of_gans](https://github.com/tkarras/progressive_growing_of_gans)
++ [nashory/progressive-growing-torch](https://github.com/nashory/progressive-growing-torch)
++ [TuXiaokang/DCGAN.PyTorch](https://github.com/TuXiaokang/DCGAN.PyTorch)
 
 ## Author
 MinchulShin, [@nashory](https://github.com/nashory)  

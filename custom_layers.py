@@ -53,6 +53,16 @@ class minibatch_std_concat_layer(nn.Module):
         return torch.cat((x, std), 1)
 
 
+class pixelwise_norm_layer(nn.Module):
+    def __init__(self):
+        super(pixelwise_norm_layer, self).__init__()
+        self.elipson = 1e-8
 
+    def forward(self, x):
+        nf = x.size(1)
+        t = x.clone()
+        t.data.fill_(0)
+        norm = torch.sqrt(x.pow(2).sum(1, keepdim=True).expand_as(x).div(nf).add(self.elipson))
+        return torch.addcdiv(t, 1, x, norm)
 
 
