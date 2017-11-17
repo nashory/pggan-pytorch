@@ -71,8 +71,11 @@ __[step 4.] Display on tensorboard__
   ~~~
   
   
-## Experimental results
-to be updated ...
+## Experimental results   
+The model is still being trained at this moment.  
+The result of higher resolution will be updated soon.  
+<img src="https://github.com/nashory/gifs/blob/pggan-pytorch/scratch_to_4.gif?raw=true" width="430" height="430"> <img src="https://github.com/nashory/gifs/blob/pggan-pytorch/4_to_8.gif?raw=true" width="430" height="430">   
+<img src="https://github.com/nashory/gifs/blob/pggan-pytorch/8_to_16.gif?raw=true" width="430" height="430"> <img src="https://github.com/nashory/gifs/blob/pggan-pytorch/16_to_32.gif?raw=true" width="430" height="430">   
 
 ## To-Do List (will be implemented soon)
 - [X] Equalized learning rate (weight normalization)
