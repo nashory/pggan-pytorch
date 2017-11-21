@@ -74,9 +74,16 @@ __[step 4.] Display on tensorboard__
 ## Experimental results   
 The model is still being trained at this moment.  
 The result of higher resolution will be updated soon.  
-<img src="https://github.com/nashory/gifs/blob/pggan-pytorch/trial2/scratch_4.gif?raw=true" width="430" height="430"> <img src="https://github.com/nashory/gifs/blob/pggan-pytorch/trial2/4_8.gif?raw=true" width="430" height="430">   
-<img src="https://github.com/nashory/gifs/blob/pggan-pytorch/trial2/8_16.gif?raw=true" width="430" height="430"> <img src="https://github.com/nashory/gifs/blob/pggan-pytorch/trial2/16_32.gif?raw=true" width="430" height="430">   
+
+__Generated Images__
+
+<img src="https://github.com/nashory/gifs/blob/pggan-pytorch/trial2/scratch_4.gif?raw=true" width="430" height="430"> <img src="https://github.com/nashory/gifs/blob/pggan-pytorch/trial2/4_8.gif?raw=true" width="430" height="430">  
+<img src="https://github.com/nashory/gifs/blob/pggan-pytorch/trial2/8_16.gif?raw=true" width="430" height="430"> <img src="https://github.com/nashory/gifs/blob/pggan-pytorch/trial2/16_32.gif?raw=true" width="430" height="430">  
 <img src="https://github.com/nashory/gifs/blob/pggan-pytorch/trial2/32_64.gif?raw=true" width="430" height="430">
+
+__Loss Curve__
+
+![image](https://puu.sh/yqlcw/681831159c.png)
 
 ## To-Do List (will be implemented soon)
 - [X] Support WGAN-GP loss
