@@ -11,19 +11,19 @@ import copy
 def deconv(layers, c_in, c_out, k_size, stride=1, pad=0, leaky=True, bn=False, wn=False, pixel=False):
     if wn:  layers.append(nn.utils.weight_norm(nn.ConvTranspose2d(c_in, c_out, k_size, stride, pad), name='weight'))
     else:   layers.append(nn.ConvTranspose2d(c_in, c_out, k_size, stride, pad))
-    if bn:      layers.append(nn.BatchNorm2d(c_out))
-    if pixel:   layers.append(pixelwise_norm_layer())
     if leaky:   layers.append(nn.LeakyReLU(0.2))
     else:       layers.append(nn.ReLU())
+    if bn:      layers.append(nn.BatchNorm2d(c_out))
+    if pixel:   layers.append(pixelwise_norm_layer())
     return layers
 
 def conv(layers, c_in, c_out, k_size, stride=1, pad=0, leaky=True, bn=False, wn=False, pixel=False):
     if wn:  layers.append(nn.utils.weight_norm(nn.Conv2d(c_in, c_out, k_size, stride, pad), name='weight'))
     else:   layers.append(nn.Conv2d(c_in, c_out, k_size, stride, pad))
-    if bn:      layers.append(nn.BatchNorm2d(c_out))
-    if pixel:   layers.append(pixelwise_norm_layer())
     if leaky:   layers.append(nn.LeakyReLU(0.2))
     else:       layers.append(nn.ReLU())
+    if bn:      layers.append(nn.BatchNorm2d(c_out))
+    if pixel:   layers.append(pixelwise_norm_layer())
     return layers
 
 def linear(layers, c_in, c_out, sigmoid=True):
