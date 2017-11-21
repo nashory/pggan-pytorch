@@ -216,7 +216,7 @@ class trainer:
         self.z_test.data.resize_(self.loader.batchsize, self.nz).normal_(0.0, 1.0)
         
         
-        for step in range(2, self.max_resl):
+        for step in range(2, self.max_resl+1):
             for iter in tqdm(range(0,(self.trns_tick*2+self.stab_tick*2)*self.TICK, self.loader.batchsize)):
                 self.globalIter = self.globalIter+1
                 self.stack = self.stack + self.loader.batchsize
@@ -259,9 +259,9 @@ class trainer:
                 if self.globalIter%self.config.save_img_every == 0:
                     x_test = self.G(self.z_test)
                     os.system('mkdir -p repo/save/grid')
-                    utils.save_image_grid(x_test.data, 'repo/save/grid/{}.jpg'.format(int(self.globalIter/self.config.save_img_every)))
+                    utils.save_image_grid(x_test.data, 'repo/save/grid/{}_{}_G{}_D{}.jpg'.format(int(self.globalIter/self.config.save_img_every), self.phase, self.complete['gen'], self.complete['dis']))
                     os.system('mkdir -p repo/save/resl_{}'.format(int(floor(self.resl))))
-                    utils.save_image_single(x_test.data, 'repo/save/resl_{}/{}.jpg'.format(int(floor(self.resl)),int(self.globalIter/self.config.save_img_every)))
+                    utils.save_image_single(x_test.data, 'repo/save/resl_{}/{}_{}_G{}_D{}.jpg'.format(int(floor(self.resl)),int(self.globalIter/self.config.save_img_every), self.phase, self.complete['gen'], self.complete['dis']))
 
 
                 # tensorboard visualization.

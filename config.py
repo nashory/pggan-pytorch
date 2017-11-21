@@ -30,7 +30,7 @@ parser.add_argument('--stab_tick', type=int, default=100)        # stabilization
 ## network structure.
 parser.add_argument('--flag_wn', type=bool, default=True)
 parser.add_argument('--flag_bn', type=bool, default=False)
-parser.add_argument('--flag_pixelwise', type=bool, default=False)
+parser.add_argument('--flag_pixelwise', type=bool, default=True)
 parser.add_argument('--flag_leaky', type=bool, default=True)
 parser.add_argument('--flag_tanh', type=bool, default=False)
 parser.add_argument('--flag_sigmoid', type=bool, default=True)
@@ -45,7 +45,7 @@ parser.add_argument('--beta2', type=float, default=0.99)
 
 ## display and save setting.
 parser.add_argument('--use_tb', type=bool, default=True)
-parser.add_argument('--save_img_every', type=int, default=10)
+parser.add_argument('--save_img_every', type=int, default=20)
 parser.add_argument('--display_tb_every', type=int, default=5)
 
 
