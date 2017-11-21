@@ -28,7 +28,7 @@ parser.add_argument('--stab_tick', type=int, default=100)        # stabilization
 
 
 ## network structure.
-parser.add_argument('--flag_wn', type=bool, default=False)
+parser.add_argument('--flag_wn', type=bool, default=True)
 parser.add_argument('--flag_bn', type=bool, default=False)
 parser.add_argument('--flag_pixelwise', type=bool, default=True)
 parser.add_argument('--flag_leaky', type=bool, default=True)
