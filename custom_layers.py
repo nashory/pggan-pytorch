@@ -66,3 +66,38 @@ class pixelwise_norm_layer(nn.Module):
         return torch.addcdiv(t, 1, x, norm)
 
 
+# for equaliaeed-learning rate.
+class equalized_conv2d(nn.Module):
+    def __init__(self, c_in, c_out, k_size, stride, pad, initializer='kaiming'):
+        super(equalized_conv2d, self).__init__()
+        self.conv = nn.Conv2d(c_in, c_out, k_size, stride, pad)
+        if initializer == 'kaiming':    torch.nn.init.kaiming_normal(self.conv.weight)
+        elif initializer == 'xavier':   torch.nn.init.xavier_normal(self.conv.weight)
+        self.inv_c = np.sqrt(2.0/(c_in*k_size**2))
+
+    def forward(self, x):
+        return self.conv(x.mul(self.inv_c))
+        
+ 
+class equalized_deconv2d(nn.Module):
+    def __init__(self, c_in, c_out, k_size, stride, pad, initializer='kaiming'):
+        super(equalized_deconv2d, self).__init__()
+        self.deconv = nn.ConvTranspose2d(c_in, c_out, k_size, stride, pad)
+        if initializer == 'kaiming':    torch.nn.init.kaiming_normal(self.deconv.weight)
+        elif initializer == 'xavier':   torch.nn.init.xavier_normal(self.deconv.weight)
+        self.inv_c = np.sqrt(2.0/(c_in*k_size**2))
+
+    def forward(self, x):
+        return self.deconv(x.mul(self.inv_c))
+
+
+class equalized_linear(nn.Module):
+    def __init__(self, c_in, c_out, initializer='kaiming'):
+        super(equalized_linear, self).__init__()
+        self.linear = nn.Linear(c_in, c_out)
+        if initializer == 'kaiming':    torch.nn.init.kaiming_normal(self.linear.weight)
+        elif initializer == 'xavier':   torch.nn.init.xavier_normal(self.linear.weight)
+        self.inv_c = np.sqrt(2.0/(c_in))
+
+    def forward(self, x):
+        return self.linear(x.mul(self.inv_c))

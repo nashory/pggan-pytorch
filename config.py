@@ -16,13 +16,14 @@ parser.add_argument('--n_gpu', type=int, default=1)         # for Multi-GPU trai
 
 
 ## training parameters.
-parser.add_argument('--lr', type=float, default=0.0002)
+parser.add_argument('--lr', type=float, default=0.001)
+parser.add_argument('--smoothing', type=float, default=0.997)
 parser.add_argument('--nc', type=int, default=3)
 parser.add_argument('--nz', type=int, default=512)
 parser.add_argument('--ngf', type=int, default=512)
 parser.add_argument('--ndf', type=int, default=512)
 parser.add_argument('--TICK', type=int, default=1000)           # 1 tick = 1000 images = (1000/batch_size) iter.
-parser.add_argument('--max_resl', type=int, default=10)          # 10 --> 1024
+parser.add_argument('--max_resl', type=int, default=8)          # 10-->1024, 9-->512, 8-->256
 parser.add_argument('--trns_tick', type=int, default=200)        # transition tick
 parser.add_argument('--stab_tick', type=int, default=100)        # stabilization tick
 
@@ -33,7 +34,7 @@ parser.add_argument('--flag_bn', type=bool, default=False)
 parser.add_argument('--flag_pixelwise', type=bool, default=True)
 parser.add_argument('--flag_leaky', type=bool, default=True)
 parser.add_argument('--flag_tanh', type=bool, default=False)
-parser.add_argument('--flag_sigmoid', type=bool, default=True)
+parser.add_argument('--flag_sigmoid', type=bool, default=False)
 
 
 
