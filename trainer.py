@@ -47,19 +47,6 @@ class trainer:
         # network and cirterion
         self.G = net.Generator(config)
         self.Gs = net.Generator(config)
-        
-        # shallow copy test.
-        #net.soft_copy_param(self.Gs, self.G, self.smoothing)
-        #for param in self.G.parameters():
-        #    print(param.data.mean())
-        #print('------------------')
-        #for param in self.Gs.parameters():
-        #    print(param.data.mean())
-        #print('------------------')
-
-
-
-
         self.D = net.Discriminator(config)
         print ('Generator structure: ')
         print(self.G.model)
@@ -164,6 +151,10 @@ class trainer:
                 self.flag_flush_gen = True
                 self.flag_flush_dis = True
 
+        if floor(self.resl) >= self.max_resl:
+            self.resl = self.max_resl
+
+
             
     def renew_everything(self):
         # renew dataloader.
@@ -227,7 +218,7 @@ class trainer:
         self.z_test.data.resize_(self.loader.batchsize, self.nz).normal_(0.0, 1.0)
         
         
-        for step in range(2, self.max_resl+1):
+        for step in range(2, self.max_resl+1+5):
             for iter in tqdm(range(0,(self.trns_tick*2+self.stab_tick*2)*self.TICK, self.loader.batchsize)):
                 self.globalIter = self.globalIter+1
                 self.stack = self.stack + self.loader.batchsize
