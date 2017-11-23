@@ -26,6 +26,7 @@ class trainer:
         self.optimizer = config.optimizer
 
         self.resl = 2           # we start from 2^2 = 4
+        self.smoothing = config.smoothing
         self.max_resl = config.max_resl
         self.trns_tick = config.trns_tick
         self.stab_tick = config.stab_tick
@@ -45,6 +46,20 @@ class trainer:
         
         # network and cirterion
         self.G = net.Generator(config)
+        self.Gs = net.Generator(config)
+        
+        # shallow copy test.
+        #net.soft_copy_param(self.Gs, self.G, self.smoothing)
+        #for param in self.G.parameters():
+        #    print(param.data.mean())
+        #print('------------------')
+        #for param in self.Gs.parameters():
+        #    print(param.data.mean())
+        #print('------------------')
+
+
+
+
         self.D = net.Discriminator(config)
         print ('Generator structure: ')
         print(self.G.model)
@@ -123,8 +138,8 @@ class trainer:
                     self.fadein['gen'].update_alpha(d_alpha)
                     self.complete['gen'] = self.fadein['gen'].alpha*100
                 self.flag_flush_gen = False
-                self.G.module.flush_network()   # flush and,
-                #self.G.module.freeze_layers()   # freeze.
+                self.G.module.flush_network()   # flush G
+                self.Gs.flush_network()         # flush Gs
                 self.fadein['gen'] = None
                 self.complete['gen'] = 0.0
                 self.phase = 'dtrns'
@@ -134,18 +149,14 @@ class trainer:
                     self.complete['dis'] = self.fadein['dis'].alpha*100
                 self.flag_flush_dis = False
                 self.D.module.flush_network()   # flush and,
-                #self.D.module.freeze_layers()   # freeze.
                 self.fadein['dis'] = None
                 self.complete['dis'] = 0.0
                 self.phase = 'gtrns'
                     
             # grow network.
             if floor(self.resl) != prev_resl:
-                #if prev_resl==2:
-                #    self.G.module.freeze_layers()   # freeze.
-                #    self.D.module.freeze_layers()   # freeze.
-                    
                 self.G.module.grow_network(floor(self.resl))
+                self.Gs.grow_network(floor(self.resl))
                 self.D.module.grow_network(floor(self.resl))
                 self.renew_everything()
                 self.fadein['gen'] = self.G.module.model.fadein_block
@@ -248,6 +259,10 @@ class trainer:
                 loss_g.backward()
                 self.opt_g.step()
 
+                # generator smoothing
+                net.soft_copy_param(self.Gs, self.G.module, self.smoothing)
+
+
                 # logging.
                 log_msg = ' [E:{0}][T:{1}][{2:6}/{3:6}]  errD: {4:.4f} | errG: {5:.4f} | [cur:{6:.3f}][resl:{7:4}][{8}][{9:.1f}%][{10:.1f}%]'.format(self.epoch, self.globalTick, self.stack, len(self.loader.dataset), loss_d.data[0], loss_g.data[0], self.resl, int(pow(2,floor(self.resl))), self.phase, self.complete['gen'], self.complete['dis'])
                 tqdm.write(log_msg)
@@ -267,12 +282,15 @@ class trainer:
                 # tensorboard visualization.
                 if self.use_tb:
                     x_test = self.G(self.z_test)
+                    x_test_s = self.Gs(self.z_test)
                     self.tb.add_scalar('data/loss_g', loss_g.data[0], self.globalIter)
                     self.tb.add_scalar('data/loss_d', loss_d.data[0], self.globalIter)
                     self.tb.add_scalar('tick/globalTick', int(self.globalTick), self.globalIter)
-                    self.tb.add_image_grid('grid/x_test', 4, x_test.data.float(), self.globalIter)
-                    self.tb.add_image_grid('grid/x_tilde', 4, self.x_tilde.data.float(), self.globalIter)
-                    self.tb.add_image_grid('grid/x_intp', 1, self.x.data.float(), self.globalIter)
+                    self.tb.add_scalar('tick/cur_resl', int(pow(2,floor(self.resl))), self.globalIter)
+                    self.tb.add_image_grid('grid/x_test', 4, utils.adjust_dyn_range(x_test.data.float(), [-1,1], [0,1]), self.globalIter)
+                    self.tb.add_image_grid('grid/x_test_s', 4, utils.adjust_dyn_range(x_test_s.data.float(), [-1,1], [0,1]), self.globalIter)
+                    self.tb.add_image_grid('grid/x_tilde', 4, utils.adjust_dyn_range(self.x_tilde.data.float(), [-1,1], [0,1]), self.globalIter)
+                    self.tb.add_image_grid('grid/x_intp', 1, utils.adjust_dyn_range(self.x.data.float(), [-1,1], [0,1]), self.globalIter)
 
 
     def snapshot(self, path):

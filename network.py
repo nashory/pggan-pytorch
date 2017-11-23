@@ -3,13 +3,13 @@ import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
 from torch.autograd import Variable
-from custom_layers import fadein_layer, ConcatTable, minibatch_std_concat_layer, Flatten, pixelwise_norm_layer
+from custom_layers import fadein_layer, ConcatTable, minibatch_std_concat_layer, Flatten, pixelwise_norm_layer, equalized_conv2d, equalized_deconv2d, equalized_linear
 import copy
 
 
 # defined for code simplicity.
 def deconv(layers, c_in, c_out, k_size, stride=1, pad=0, leaky=True, bn=False, wn=False, pixel=False):
-    if wn:  layers.append(nn.utils.weight_norm(nn.ConvTranspose2d(c_in, c_out, k_size, stride, pad), name='weight'))
+    if wn:  layers.append(equalized_deconv2d(c_in, c_out, k_size, stride, pad))
     else:   layers.append(nn.ConvTranspose2d(c_in, c_out, k_size, stride, pad))
     if leaky:   layers.append(nn.LeakyReLU(0.2))
     else:       layers.append(nn.ReLU())
@@ -18,7 +18,7 @@ def deconv(layers, c_in, c_out, k_size, stride=1, pad=0, leaky=True, bn=False, w
     return layers
 
 def conv(layers, c_in, c_out, k_size, stride=1, pad=0, leaky=True, bn=False, wn=False, pixel=False):
-    if wn:  layers.append(nn.utils.weight_norm(nn.Conv2d(c_in, c_out, k_size, stride, pad), name='weight'))
+    if wn:  layers.append(equalized_conv2d(c_in, c_out, k_size, stride, pad, initializer='kaiming'))
     else:   layers.append(nn.Conv2d(c_in, c_out, k_size, stride, pad))
     if leaky:   layers.append(nn.LeakyReLU(0.2))
     else:       layers.append(nn.ReLU())
@@ -26,10 +26,11 @@ def conv(layers, c_in, c_out, k_size, stride=1, pad=0, leaky=True, bn=False, wn=
     if pixel:   layers.append(pixelwise_norm_layer())
     return layers
 
-def linear(layers, c_in, c_out, sigmoid=True):
+def linear(layers, c_in, c_out, sig=True, wn=False):
     layers.append(Flatten())
-    layers.append(nn.Linear(c_in, c_out))
-    if sigmoid: layers.append(nn.Sigmoid())
+    if wn:      layers.append(equalized_linear(c_in, c_out))
+    else:       layers.append(nn.Linear(c_in, c_out))
+    if sig:     layers.append(nn.Sigmoid())
     return layers
 
     
@@ -40,6 +41,13 @@ def deepcopy_module(module, target):
             new_module.add_module(name, m)                          # make new structure and,
             new_module[-1].load_state_dict(m.state_dict())         # copy weights
     return new_module
+
+def soft_copy_param(target_link, source_link, tau):
+    ''' soft-copy parameters of a link to another link. '''
+    target_params = dict(target_link.named_parameters())
+    for param_name, param in source_link.named_parameters():
+        target_params[param_name].data = target_params[param_name].data.mul(1.0-tau)
+        target_params[param_name].data = target_params[param_name].data.add(param.data.mul(tau))
 
 def get_module_names(model):
     names = []
@@ -199,9 +207,9 @@ class Discriminator(nn.Module):
         ndim = self.ndf
         layers = []
         layers.append(minibatch_std_concat_layer())
-        layers = conv(layers, ndim+1, ndim, 3, 1, 1, self.flag_leaky, self.flag_bn, self.flag_wn, self.flag_pixelwise)
-        layers = conv(layers, ndim, ndim, 4, 1, 0, self.flag_leaky, self.flag_bn, self.flag_wn, self.flag_pixelwise)
-        layers = linear(layers, ndim, 1, self.flag_sigmoid)
+        layers = conv(layers, ndim+1, ndim, 3, 1, 1, self.flag_leaky, self.flag_bn, self.flag_wn, pixel=False)
+        layers = conv(layers, ndim, ndim, 4, 1, 0, self.flag_leaky, self.flag_bn, self.flag_wn, pixel=False)
+        layers = linear(layers, ndim, 1, sig=self.flag_sigmoid, wn=self.flag_wn)
         return  nn.Sequential(*layers), ndim
     
     def intermediate_block(self, resl):
@@ -217,18 +225,18 @@ class Discriminator(nn.Module):
                 ndim = ndim/2
         layers = []
         if halving:
-            layers = deconv(layers, ndim, ndim, 3, 1, 1, self.flag_leaky, self.flag_bn, self.flag_wn, self.flag_pixelwise)
-            layers = deconv(layers, ndim, ndim*2, 3, 1, 1, self.flag_leaky, self.flag_bn, self.flag_wn, self.flag_pixelwise)
+            layers = deconv(layers, ndim, ndim, 3, 1, 1, self.flag_leaky, self.flag_bn, self.flag_wn, pixel=False)
+            layers = deconv(layers, ndim, ndim*2, 3, 1, 1, self.flag_leaky, self.flag_bn, self.flag_wn, pixel=False)
         else:
-            layers = deconv(layers, ndim, ndim, 3, 1, 1, self.flag_leaky, self.flag_bn, self.flag_wn, self.flag_pixelwise)
-            layers = deconv(layers, ndim, ndim, 3, 1, 1, self.flag_leaky, self.flag_bn, self.flag_wn, self.flag_pixelwise)
+            layers = deconv(layers, ndim, ndim, 3, 1, 1, self.flag_leaky, self.flag_bn, self.flag_wn, pixel=False)
+            layers = deconv(layers, ndim, ndim, 3, 1, 1, self.flag_leaky, self.flag_bn, self.flag_wn, pixel=False)
         
         layers.append(nn.AvgPool2d(kernel_size=2))       # scale up by factor of 2.0
         return  nn.Sequential(*layers), ndim, layer_name
     
     def from_rgb_block(self, ndim):
         layers = []
-        layers = conv(layers, self.nc, ndim, 1, 1, 0, self.flag_leaky, self.flag_bn, self.flag_wn, self.flag_pixelwise)
+        layers = conv(layers, self.nc, ndim, 1, 1, 0, self.flag_leaky, self.flag_bn, self.flag_wn, pixel=False)
         return  nn.Sequential(*layers)
     
     def get_init_dis(self):

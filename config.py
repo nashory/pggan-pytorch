@@ -6,7 +6,7 @@ import time
 parser = argparse.ArgumentParser('PGGAN')
 
 ## general settings.
-parser.add_argument('--train_data_root', type=str, default='/home1/irteam/nashory/data/CelebA/Img')
+parser.add_argument('--train_data_root', type=str, default='/home1/work/nashory/data/CelebA/Img')
 parser.add_argument('--random_seed', type=int, default=int(time.time()))
 parser.add_argument('--n_gpu', type=int, default=1)         # for Multi-GPU training.
 
@@ -16,7 +16,8 @@ parser.add_argument('--n_gpu', type=int, default=1)         # for Multi-GPU trai
 
 
 ## training parameters.
-parser.add_argument('--lr', type=float, default=0.0002)
+parser.add_argument('--lr', type=float, default=0.001)
+parser.add_argument('--smoothing', type=float, default=0.997)
 parser.add_argument('--nc', type=int, default=3)
 parser.add_argument('--nz', type=int, default=512)
 parser.add_argument('--ngf', type=int, default=512)
@@ -32,7 +33,7 @@ parser.add_argument('--flag_wn', type=bool, default=True)
 parser.add_argument('--flag_bn', type=bool, default=False)
 parser.add_argument('--flag_pixelwise', type=bool, default=True)
 parser.add_argument('--flag_leaky', type=bool, default=True)
-parser.add_argument('--flag_tanh', type=bool, default=False)
+parser.add_argument('--flag_tanh', type=bool, default=True)
 parser.add_argument('--flag_sigmoid', type=bool, default=True)
 
 
