@@ -17,6 +17,7 @@ parser.add_argument('--n_gpu', type=int, default=1)         # for Multi-GPU trai
 
 ## training parameters.
 parser.add_argument('--lr', type=float, default=0.001)
+parser.add_argument('--lr_decay', type=float, default=0.87)
 parser.add_argument('--smoothing', type=float, default=0.997)
 parser.add_argument('--nc', type=int, default=3)
 parser.add_argument('--nz', type=int, default=512)

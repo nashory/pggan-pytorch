@@ -8,22 +8,24 @@ import copy
 
 
 # defined for code simplicity.
-def deconv(layers, c_in, c_out, k_size, stride=1, pad=0, leaky=True, bn=False, wn=False, pixel=False):
+def deconv(layers, c_in, c_out, k_size, stride=1, pad=0, leaky=True, bn=False, wn=False, pixel=False, only=False):
     if wn:  layers.append(equalized_deconv2d(c_in, c_out, k_size, stride, pad))
     else:   layers.append(nn.ConvTranspose2d(c_in, c_out, k_size, stride, pad))
-    if leaky:   layers.append(nn.LeakyReLU(0.2))
-    else:       layers.append(nn.ReLU())
-    if bn:      layers.append(nn.BatchNorm2d(c_out))
-    if pixel:   layers.append(pixelwise_norm_layer())
+    if not only:
+        if leaky:   layers.append(nn.LeakyReLU(0.2))
+        else:       layers.append(nn.ReLU())
+        if bn:      layers.append(nn.BatchNorm2d(c_out))
+        if pixel:   layers.append(pixelwise_norm_layer())
     return layers
 
-def conv(layers, c_in, c_out, k_size, stride=1, pad=0, leaky=True, bn=False, wn=False, pixel=False):
+def conv(layers, c_in, c_out, k_size, stride=1, pad=0, leaky=True, bn=False, wn=False, pixel=False, only=False):
     if wn:  layers.append(equalized_conv2d(c_in, c_out, k_size, stride, pad, initializer='kaiming'))
     else:   layers.append(nn.Conv2d(c_in, c_out, k_size, stride, pad))
-    if leaky:   layers.append(nn.LeakyReLU(0.2))
-    else:       layers.append(nn.ReLU())
-    if bn:      layers.append(nn.BatchNorm2d(c_out))
-    if pixel:   layers.append(pixelwise_norm_layer())
+    if not only:
+        if leaky:   layers.append(nn.LeakyReLU(0.2))
+        else:       layers.append(nn.ReLU())
+        if bn:      layers.append(nn.BatchNorm2d(c_out))
+        if pixel:   layers.append(pixelwise_norm_layer())
     return layers
 
 def linear(layers, c_in, c_out, sig=True, wn=False):
@@ -104,10 +106,7 @@ class Generator(nn.Module):
     
     def to_rgb_block(self, c_in):
         layers = []
-        if self.flag_wn:    
-            layers.append(nn.utils.weight_norm(nn.ConvTranspose2d(c_in, self.nc, 1, 1, 0), name='weight'))
-        else:   
-            layers.append(nn.ConvTranspose2d(c_in, self.nc, 1, 1, 0))
+        layers = deconv(layers, c_in, self.nc, 1, 1, 0, self.flag_leaky, self.flag_bn, self.flag_wn, self.flag_pixelwise, only=True)
         if self.flag_tanh:  layers.append(nn.Tanh())
         return nn.Sequential(*layers)
 
