@@ -77,9 +77,12 @@ The result of higher resolution will be updated soon.
 
 __Generated Images__
 
-<img src="https://github.com/nashory/gifs/blob/pggan-pytorch/trial2/scratch_4.gif?raw=true" width="430" height="430"> <img src="https://github.com/nashory/gifs/blob/pggan-pytorch/trial2/4_8.gif?raw=true" width="430" height="430">  
-<img src="https://github.com/nashory/gifs/blob/pggan-pytorch/trial2/8_16.gif?raw=true" width="430" height="430"> <img src="https://github.com/nashory/gifs/blob/pggan-pytorch/trial2/16_32.gif?raw=true" width="430" height="430">  
-<img src="https://github.com/nashory/gifs/blob/pggan-pytorch/trial2/32_64.gif?raw=true" width="430" height="430">
+<img src="https://github.com/nashory/gifs/blob/pggan-pytorch/scatch_4.gif?raw=true" width="430" height="430"> <img src="https://puu.sh/yufIa/2a56d61890.jpg" width="430" height="430">  
+<img src="https://github.com/nashory/gifs/blob/pggan-pytorch/4_8.gif?raw=true" width="430" height="430"> <img src="https://puu.sh/yufJx/a427ccdcdf.jpg" width="430" height="430">  
+<img src="https://github.com/nashory/gifs/blob/pggan-pytorch/8_16.gif?raw=true" width="430" height="430"> <img src="https://puu.sh/yufMz/dd74f56d36.jpg" width="430" height="430">  
+<img src="https://github.com/nashory/gifs/blob/pggan-pytorch/16_32.gif?raw=true" width="430" height="430"> <img src="https://puu.sh/yufLF/013cc59c15.jpg" width="430" height="430">  
+<img src="https://github.com/nashory/gifs/blob/pggan-pytorch/32_64.gif?raw=true" width="430" height="430"> <img src="https://puu.sh/yufMV/835ec431ea.jpg" width="430" height="430">  
+
 
 __Loss Curve__
 
