@@ -42,12 +42,9 @@ class trainer:
         self.phase = 'init'
         self.flag_flush_gen = False
         self.flag_flush_dis = False
-        self.trns_tick = self.config.trns_tick
-        self.stab_tick = self.config.stab_tick
         
         # network and cirterion
         self.G = net.Generator(config)
-        #self.Gs = net.Generator(config)
         self.D = net.Discriminator(config)
         print ('Generator structure: ')
         print(self.G.model)
@@ -215,8 +212,6 @@ class trainer:
 
 
     def train(self):
-        
-        
         # noise for test.
         self.z_test = torch.FloatTensor(self.loader.batchsize, self.nz)
         if self.use_cuda:
@@ -257,10 +252,6 @@ class trainer:
                 loss_g.backward()
                 self.opt_g.step()
 
-                # generator smoothing
-                #net.soft_copy_param(self.Gs.module, self.G.module, self.smoothing)
-
-
                 # logging.
                 log_msg = ' [E:{0}][T:{1}][{2:6}/{3:6}]  errD: {4:.4f} | errG: {5:.4f} | [lr:{11:.5f}][cur:{6:.3f}][resl:{7:4}][{8}][{9:.1f}%][{10:.1f}%]'.format(self.epoch, self.globalTick, self.stack, len(self.loader.dataset), loss_d.data[0], loss_g.data[0], self.resl, int(pow(2,floor(self.resl))), self.phase, self.complete['gen'], self.complete['dis'], self.lr)
                 tqdm.write(log_msg)
@@ -280,13 +271,11 @@ class trainer:
                 # tensorboard visualization.
                 if self.use_tb:
                     x_test = self.G(self.z_test)
-                    #x_test_s = self.Gs(self.z_test)
                     self.tb.add_scalar('data/loss_g', loss_g.data[0], self.globalIter)
                     self.tb.add_scalar('data/loss_d', loss_d.data[0], self.globalIter)
                     self.tb.add_scalar('tick/lr', self.lr, self.globalIter)
                     self.tb.add_scalar('tick/cur_resl', int(pow(2,floor(self.resl))), self.globalIter)
                     self.tb.add_image_grid('grid/x_test', 4, utils.adjust_dyn_range(x_test.data.float(), [-1,1], [0,1]), self.globalIter)
-                    #self.tb.add_image_grid('grid/x_test_s', 4, utils.adjust_dyn_range(x_test_s.data.float(), [-1,1], [0,1]), self.globalIter)
                     self.tb.add_image_grid('grid/x_tilde', 4, utils.adjust_dyn_range(self.x_tilde.data.float(), [-1,1], [0,1]), self.globalIter)
                     self.tb.add_image_grid('grid/x_intp', 4, utils.adjust_dyn_range(self.x.data.float(), [-1,1], [0,1]), self.globalIter)
 

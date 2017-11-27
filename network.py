@@ -106,7 +106,10 @@ class Generator(nn.Module):
     
     def to_rgb_block(self, c_in):
         layers = []
-        layers = deconv(layers, c_in, self.nc, 1, 1, 0, self.flag_leaky, self.flag_bn, self.flag_wn, self.flag_pixelwise, only=True)
+        if self.flag_wn:    
+            layers.append(nn.utils.weight_norm(nn.ConvTranspose2d(c_in, self.nc, 1, 1, 0), name='weight'))
+        else:   
+            layers.append(nn.ConvTranspose2d(c_in, self.nc, 1, 1, 0))
         if self.flag_tanh:  layers.append(nn.Tanh())
         return nn.Sequential(*layers)
 
@@ -172,7 +175,7 @@ class Generator(nn.Module):
             print(self.model)
 
     def freeze_layers(self):
-        # let's freeze pretrained blocks.
+        # let's freeze pretrained blocks. (Found freezing layers not helpful, so did not use this func.)
         print('freeze pretrained weights ... ')
         for param in self.model.parameters():
             param.requires_grad = False
@@ -301,7 +304,7 @@ class Discriminator(nn.Module):
             print self.model
     
     def freeze_layers(self):
-        # let's freeze pretrained blocks.
+        # let's freeze pretrained blocks. (Found freezing layers not helpful, so did not use this func.)
         print('freeze pretrained weights ... ')
         for param in self.model.parameters():
             param.requires_grad = False

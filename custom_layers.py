@@ -76,7 +76,7 @@ class equalized_conv2d(nn.Module):
         
         conv_w = self.conv.weight.data.clone()
         self.bias = torch.nn.Parameter(torch.FloatTensor(c_out).fill_(0))
-        self.scale = np.sqrt(conv_w.pow(2).mean()+1e-8)
+        self.scale = np.sqrt(conv_w.pow(2).mean())
         inv_w = conv_w.clone().fill_(self.scale)
         t = inv_w.clone().fill_(0)
         self.conv.weight.data = torch.addcdiv(t, 1, self.conv.weight.data, inv_w)            # adjust weights dynamically.
@@ -94,7 +94,7 @@ class equalized_deconv2d(nn.Module):
         elif initializer == 'xavier':   torch.nn.init.xavier_normal(self.deconv.weight)
         
         deconv_w = self.deconv.weight.data.clone()
-        self.scale = np.sqrt(deconv_w.pow(2).mean()+1e-8)
+        self.scale = np.sqrt(deconv_w.pow(2).mean())
         self.bias = torch.nn.Parameter(torch.FloatTensor(c_out).fill_(0))
         inv_w = deconv_w.clone().fill_(self.scale)
         t = inv_w.clone().fill_(0)
@@ -114,7 +114,7 @@ class equalized_linear(nn.Module):
         
         linear_w = self.linear.weight.data.clone()
         self.bias = torch.nn.Parameter(torch.FloatTensor(c_out).fill_(0))
-        self.scale = np.sqrt(linear_w.pow(2).mean()+1e-8)
+        self.scale = np.sqrt(linear_w.pow(2).mean())
         inv_w = linear_w.clone().fill_(self.scale)
         t = inv_w.clone().fill_(0)
         self.linear.weight.data = torch.addcdiv(t, 1, self.linear.weight.data, inv_w)            # adjust weights dynamically.
