@@ -26,6 +26,7 @@ class trainer:
         self.optimizer = config.optimizer
 
         self.resl = 2           # we start from 2^2 = 4
+        self.lr = config.lr
         self.smoothing = config.smoothing
         self.max_resl = config.max_resl
         self.trns_tick = config.trns_tick
@@ -41,12 +42,9 @@ class trainer:
         self.phase = 'init'
         self.flag_flush_gen = False
         self.flag_flush_dis = False
-        self.trns_tick = self.config.trns_tick
-        self.stab_tick = self.config.stab_tick
         
         # network and cirterion
         self.G = net.Generator(config)
-        self.Gs = net.Generator(config)
         self.D = net.Discriminator(config)
         print ('Generator structure: ')
         print(self.G.model)
@@ -57,8 +55,6 @@ class trainer:
             self.mse = self.mse.cuda()
             torch.cuda.manual_seed(config.random_seed)
             if config.n_gpu==1:
-                #self.G = self.G.cuda()
-                #self.D = self.D.cuda()         # It seems simply call .cuda() on the model does not function. PyTorch bug when we use modules.
                 self.G = torch.nn.DataParallel(self.G).cuda(device_id=0)
                 self.D = torch.nn.DataParallel(self.D).cuda(device_id=0)
             else:
@@ -66,9 +62,10 @@ class trainer:
                 for i  in range(config.n_gpu):
                     gpus.append(i)
                 self.G = torch.nn.DataParallel(self.G, device_ids=gpus).cuda()
-                self.D = torch.nn.DataParallel(self.D, device_ids=gpus).cuda()
+                self.D = torch.nn.DataParallel(self.D, device_ids=gpus).cuda()  
+
         
-        # define tensors, and get dataloader.
+        # define tensors, ship model to cuda, and get dataloader.
         self.renew_everything()
         
         # tensorboard
@@ -126,7 +123,7 @@ class trainer:
                     self.complete['gen'] = self.fadein['gen'].alpha*100
                 self.flag_flush_gen = False
                 self.G.module.flush_network()   # flush G
-                self.Gs.flush_network()         # flush Gs
+                #self.Gs.module.flush_network()         # flush Gs
                 self.fadein['gen'] = None
                 self.complete['gen'] = 0.0
                 self.phase = 'dtrns'
@@ -142,8 +139,9 @@ class trainer:
                     
             # grow network.
             if floor(self.resl) != prev_resl:
+                self.lr = self.lr * float(self.config.lr_decay)
                 self.G.module.grow_network(floor(self.resl))
-                self.Gs.grow_network(floor(self.resl))
+                #self.Gs.module.grow_network(floor(self.resl))
                 self.D.module.grow_network(floor(self.resl))
                 self.renew_everything()
                 self.fadein['gen'] = self.G.module.model.fadein_block
@@ -184,6 +182,17 @@ class trainer:
         self.real_label = Variable(self.real_label)
         self.fake_label = Variable(self.fake_label)
         
+        # ship new model to cuda.
+        if self.use_cuda:
+            self.G = self.G.cuda()
+            self.D = self.D.cuda()
+        
+        # optimizer
+        betas = (self.config.beta1, self.config.beta2)
+        if self.optimizer == 'adam':
+            self.opt_g = Adam(filter(lambda p: p.requires_grad, self.G.parameters()), lr=self.lr, betas=betas, weight_decay=0.0)
+            self.opt_d = Adam(filter(lambda p: p.requires_grad, self.D.parameters()), lr=self.lr, betas=betas, weight_decay=0.0)
+        
 
     def feed_interpolated_input(self, x):
         if self.phase == 'gtrns' and floor(self.resl)>2:
@@ -203,13 +212,6 @@ class trainer:
 
 
     def train(self):
-        
-        # optimizer
-        betas = (self.config.beta1, self.config.beta2)
-        if self.optimizer == 'adam':
-            self.opt_g = Adam(filter(lambda p: p.requires_grad, self.G.parameters()), lr=self.config.lr, betas=betas, weight_decay=0.0)
-            self.opt_d = Adam(filter(lambda p: p.requires_grad, self.D.parameters()), lr=self.config.lr, betas=betas, weight_decay=0.0)
-        
         # noise for test.
         self.z_test = torch.FloatTensor(self.loader.batchsize, self.nz)
         if self.use_cuda:
@@ -250,12 +252,8 @@ class trainer:
                 loss_g.backward()
                 self.opt_g.step()
 
-                # generator smoothing
-                net.soft_copy_param(self.Gs, self.G.module, self.smoothing)
-
-
                 # logging.
-                log_msg = ' [E:{0}][T:{1}][{2:6}/{3:6}]  errD: {4:.4f} | errG: {5:.4f} | [cur:{6:.3f}][resl:{7:4}][{8}][{9:.1f}%][{10:.1f}%]'.format(self.epoch, self.globalTick, self.stack, len(self.loader.dataset), loss_d.data[0], loss_g.data[0], self.resl, int(pow(2,floor(self.resl))), self.phase, self.complete['gen'], self.complete['dis'])
+                log_msg = ' [E:{0}][T:{1}][{2:6}/{3:6}]  errD: {4:.4f} | errG: {5:.4f} | [lr:{11:.5f}][cur:{6:.3f}][resl:{7:4}][{8}][{9:.1f}%][{10:.1f}%]'.format(self.epoch, self.globalTick, self.stack, len(self.loader.dataset), loss_d.data[0], loss_g.data[0], self.resl, int(pow(2,floor(self.resl))), self.phase, self.complete['gen'], self.complete['dis'], self.lr)
                 tqdm.write(log_msg)
 
                 # save model.
@@ -273,15 +271,13 @@ class trainer:
                 # tensorboard visualization.
                 if self.use_tb:
                     x_test = self.G(self.z_test)
-                    x_test_s = self.Gs(self.z_test)
                     self.tb.add_scalar('data/loss_g', loss_g.data[0], self.globalIter)
                     self.tb.add_scalar('data/loss_d', loss_d.data[0], self.globalIter)
-                    self.tb.add_scalar('tick/globalTick', int(self.globalTick), self.globalIter)
+                    self.tb.add_scalar('tick/lr', self.lr, self.globalIter)
                     self.tb.add_scalar('tick/cur_resl', int(pow(2,floor(self.resl))), self.globalIter)
                     self.tb.add_image_grid('grid/x_test', 4, utils.adjust_dyn_range(x_test.data.float(), [-1,1], [0,1]), self.globalIter)
-                    self.tb.add_image_grid('grid/x_test_s', 4, utils.adjust_dyn_range(x_test_s.data.float(), [-1,1], [0,1]), self.globalIter)
                     self.tb.add_image_grid('grid/x_tilde', 4, utils.adjust_dyn_range(self.x_tilde.data.float(), [-1,1], [0,1]), self.globalIter)
-                    self.tb.add_image_grid('grid/x_intp', 1, utils.adjust_dyn_range(self.x.data.float(), [-1,1], [0,1]), self.globalIter)
+                    self.tb.add_image_grid('grid/x_intp', 4, utils.adjust_dyn_range(self.x.data.float(), [-1,1], [0,1]), self.globalIter)
 
 
     def snapshot(self, path):

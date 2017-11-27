@@ -8,22 +8,24 @@ import copy
 
 
 # defined for code simplicity.
-def deconv(layers, c_in, c_out, k_size, stride=1, pad=0, leaky=True, bn=False, wn=False, pixel=False):
+def deconv(layers, c_in, c_out, k_size, stride=1, pad=0, leaky=True, bn=False, wn=False, pixel=False, only=False):
     if wn:  layers.append(equalized_deconv2d(c_in, c_out, k_size, stride, pad))
     else:   layers.append(nn.ConvTranspose2d(c_in, c_out, k_size, stride, pad))
-    if leaky:   layers.append(nn.LeakyReLU(0.2))
-    else:       layers.append(nn.ReLU())
-    if bn:      layers.append(nn.BatchNorm2d(c_out))
-    if pixel:   layers.append(pixelwise_norm_layer())
+    if not only:
+        if leaky:   layers.append(nn.LeakyReLU(0.2))
+        else:       layers.append(nn.ReLU())
+        if bn:      layers.append(nn.BatchNorm2d(c_out))
+        if pixel:   layers.append(pixelwise_norm_layer())
     return layers
 
-def conv(layers, c_in, c_out, k_size, stride=1, pad=0, leaky=True, bn=False, wn=False, pixel=False):
+def conv(layers, c_in, c_out, k_size, stride=1, pad=0, leaky=True, bn=False, wn=False, pixel=False, only=False):
     if wn:  layers.append(equalized_conv2d(c_in, c_out, k_size, stride, pad, initializer='kaiming'))
     else:   layers.append(nn.Conv2d(c_in, c_out, k_size, stride, pad))
-    if leaky:   layers.append(nn.LeakyReLU(0.2))
-    else:       layers.append(nn.ReLU())
-    if bn:      layers.append(nn.BatchNorm2d(c_out))
-    if pixel:   layers.append(pixelwise_norm_layer())
+    if not only:
+        if leaky:   layers.append(nn.LeakyReLU(0.2))
+        else:       layers.append(nn.ReLU())
+        if bn:      layers.append(nn.BatchNorm2d(c_out))
+        if pixel:   layers.append(pixelwise_norm_layer())
     return layers
 
 def linear(layers, c_in, c_out, sig=True, wn=False):
@@ -173,7 +175,7 @@ class Generator(nn.Module):
             print(self.model)
 
     def freeze_layers(self):
-        # let's freeze pretrained blocks.
+        # let's freeze pretrained blocks. (Found freezing layers not helpful, so did not use this func.)
         print('freeze pretrained weights ... ')
         for param in self.model.parameters():
             param.requires_grad = False
@@ -302,7 +304,7 @@ class Discriminator(nn.Module):
             print self.model
     
     def freeze_layers(self):
-        # let's freeze pretrained blocks.
+        # let's freeze pretrained blocks. (Found freezing layers not helpful, so did not use this func.)
         print('freeze pretrained weights ... ')
         for param in self.model.parameters():
             param.requires_grad = False

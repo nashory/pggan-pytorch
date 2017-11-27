@@ -68,36 +68,63 @@ class pixelwise_norm_layer(nn.Module):
 
 # for equaliaeed-learning rate.
 class equalized_conv2d(nn.Module):
-    def __init__(self, c_in, c_out, k_size, stride, pad, initializer='kaiming'):
+    def __init__(self, c_in, c_out, k_size, stride, pad, initializer='kaiming', bias=False):
         super(equalized_conv2d, self).__init__()
-        self.conv = nn.Conv2d(c_in, c_out, k_size, stride, pad)
+        self.conv = nn.Conv2d(c_in, c_out, k_size, stride, pad, bias=False)
         if initializer == 'kaiming':    torch.nn.init.kaiming_normal(self.conv.weight)
         elif initializer == 'xavier':   torch.nn.init.xavier_normal(self.conv.weight)
-        self.inv_c = np.sqrt(2.0/(c_in*k_size**2))
+        
+        conv_w = self.conv.weight.data.clone()
+        self.bias = torch.nn.Parameter(torch.FloatTensor(c_out).fill_(0))
+        self.scale = np.sqrt(conv_w.pow(2).mean())
+        inv_w = conv_w.clone().fill_(self.scale)
+        t = inv_w.clone().fill_(0)
+        self.conv.weight.data = torch.addcdiv(t, 1, self.conv.weight.data, inv_w)            # adjust weights dynamically.
 
     def forward(self, x):
-        return self.conv(x.mul(self.inv_c))
+        x = self.conv(x.mul(self.scale))
+        return x + self.bias.view(1,-1,1,1).expand_as(x)
         
  
 class equalized_deconv2d(nn.Module):
     def __init__(self, c_in, c_out, k_size, stride, pad, initializer='kaiming'):
         super(equalized_deconv2d, self).__init__()
-        self.deconv = nn.ConvTranspose2d(c_in, c_out, k_size, stride, pad)
+        self.deconv = nn.ConvTranspose2d(c_in, c_out, k_size, stride, pad, bias=False)
         if initializer == 'kaiming':    torch.nn.init.kaiming_normal(self.deconv.weight)
         elif initializer == 'xavier':   torch.nn.init.xavier_normal(self.deconv.weight)
-        self.inv_c = np.sqrt(2.0/(c_in*k_size**2))
+        
+        deconv_w = self.deconv.weight.data.clone()
+        self.scale = np.sqrt(deconv_w.pow(2).mean())
+        self.bias = torch.nn.Parameter(torch.FloatTensor(c_out).fill_(0))
+        inv_w = deconv_w.clone().fill_(self.scale)
+        t = inv_w.clone().fill_(0)
+        self.deconv.weight.data = torch.addcdiv(t, 1, self.deconv.weight.data, inv_w)            # adjust weights dynamically.
 
     def forward(self, x):
-        return self.deconv(x.mul(self.inv_c))
+        x = self.deconv(x.mul(self.scale))
+        return x + self.bias.view(1,-1,1,1).expand_as(x)
 
 
 class equalized_linear(nn.Module):
     def __init__(self, c_in, c_out, initializer='kaiming'):
         super(equalized_linear, self).__init__()
-        self.linear = nn.Linear(c_in, c_out)
+        self.linear = nn.Linear(c_in, c_out, bias=False)
         if initializer == 'kaiming':    torch.nn.init.kaiming_normal(self.linear.weight)
         elif initializer == 'xavier':   torch.nn.init.xavier_normal(self.linear.weight)
-        self.inv_c = np.sqrt(2.0/(c_in))
+        
+        linear_w = self.linear.weight.data.clone()
+        self.bias = torch.nn.Parameter(torch.FloatTensor(c_out).fill_(0))
+        self.scale = np.sqrt(linear_w.pow(2).mean())
+        inv_w = linear_w.clone().fill_(self.scale)
+        t = inv_w.clone().fill_(0)
+        self.linear.weight.data = torch.addcdiv(t, 1, self.linear.weight.data, inv_w)            # adjust weights dynamically.
 
     def forward(self, x):
-        return self.linear(x.mul(self.inv_c))
+        x = self.linear(x.mul(self.scale))
+        return x + self.bias.view(1,-1).expand_as(x)
+
+
+
+
+
+
