@@ -5,28 +5,25 @@ __YOUR CONTRIBUTION IS INVALUABLE FOR THIS PROJECT :)__
 ![image](https://puu.sh/ydG0E/e0f32b0d92.png)
 
 ## What's different from official paper?
-+ to be updated...
++ original: trans(G)-->trans(D)-->stab / my code: trans(G)-->stab-->transition(D)-->stab
++ no use of NIN layer. The unnecessary layers (like low-resolution blocks) are automatically flushed out and grow.
++ used torch.utils.weight_norm for to_rgb_layer of generator.
 
 
 ## How to use?
 __[step 1.] Prepare dataset__   
-CelebA-HQ dataset is not available yet, so I used 100,000 generated PNGs of CelebA-HQ released by the author.   
-The quality of the generated image was good enough for training and verifying the preformance of the code.  
-If the CelebA-HQ dataset is releasted in then near future, I will update the experimental result.  
-[[download]](https://drive.google.com/open?id=0B4qLcYyJmiz0MUVMVFEyclJnRmc)
-
-+ CAUTION: loading 1024 x 1024 image and resizing every forward process makes training slow. I recommend you to use normal CelebA dataset until the output resolution converges to 256x256.
+The author of progressive GAN released CelebA-HQ dataset, and I am working on it.  
+Before then please use CelebA to generate up to 256x256 face images.
+The CelebA-HQ dataloading would be supported very soon.
 
 ~~~
 ---------------------------------------------
 The training data folder should look like : 
 <train_data_root>
-                |--classA
-                        |--image1A
-                        |--image2A ...
-                |--classB
-                        |--image1B
-                        |--image2B ...
+                |--CelebA
+                        |--image1
+                        |--image2
+                        |--image3 ...
 ---------------------------------------------
 ~~~
 
@@ -77,18 +74,26 @@ The result of higher resolution will be updated soon.
 
 __Generated Images__
 
-<img src="https://github.com/nashory/gifs/blob/pggan-pytorch/trial2/scratch_4.gif?raw=true" width="430" height="430"> <img src="https://github.com/nashory/gifs/blob/pggan-pytorch/trial2/4_8.gif?raw=true" width="430" height="430">  
-<img src="https://github.com/nashory/gifs/blob/pggan-pytorch/trial2/8_16.gif?raw=true" width="430" height="430"> <img src="https://github.com/nashory/gifs/blob/pggan-pytorch/trial2/16_32.gif?raw=true" width="430" height="430">  
-<img src="https://github.com/nashory/gifs/blob/pggan-pytorch/trial2/32_64.gif?raw=true" width="430" height="430">
+<img src="https://github.com/nashory/gifs/blob/pggan-pytorch/scatch_4.gif?raw=true" width="430" height="430"> <img src="https://puu.sh/yufIa/2a56d61890.jpg" width="430" height="430">  
+<img src="https://github.com/nashory/gifs/blob/pggan-pytorch/4_8.gif?raw=true" width="430" height="430"> <img src="https://puu.sh/yufJx/a427ccdcdf.jpg" width="430" height="430">  
+<img src="https://github.com/nashory/gifs/blob/pggan-pytorch/8_16.gif?raw=true" width="430" height="430"> <img src="https://puu.sh/yufMz/dd74f56d36.jpg" width="430" height="430">  
+<img src="https://github.com/nashory/gifs/blob/pggan-pytorch/16_32.gif?raw=true" width="430" height="430"> <img src="https://puu.sh/yufLF/013cc59c15.jpg" width="430" height="430">  
+<img src="https://github.com/nashory/gifs/blob/pggan-pytorch/32_64.gif?raw=true" width="430" height="430"> <img src="https://puu.sh/yufMV/835ec431ea.jpg" width="430" height="430">  
+
 
 __Loss Curve__
 
-![image](https://puu.sh/yqlcw/681831159c.png)
+![image](https://puu.sh/yuhi4/a49686b220.png)
 
 ## To-Do List (will be implemented soon)
 - [X] Support WGAN-GP loss
 - [X] training resume
 - [X] loading CelebA-HQ dataset (for 512x512 and 1024x0124 training)
+
+
+## Compatability
++ cuda v8.0
++ Tesla P40 (you may need more than 12GB Memory. If not, please adjust the batch_table in `dataloader.py`)
 
 
 ## Acknowledgement
