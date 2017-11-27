@@ -18,10 +18,16 @@ def deconv(layers, c_in, c_out, k_size, stride=1, pad=0, leaky=True, bn=False, w
         if pixel:   layers.append(pixelwise_norm_layer())
     return layers
 
+<<<<<<< HEAD
 def conv(layers, c_in, c_out, k_size, stride=1, pad=0, leaky=True, bn=False, wn=False, pixel=False, gdrop=True, only=False):
     if gdrop:       layers.append(generalized_drop_out(mode='prop', strength=0.0))
     if wn:          layers.append(equalized_conv2d(c_in, c_out, k_size, stride, pad, initializer='kaiming'))
     else:           layers.append(nn.Conv2d(c_in, c_out, k_size, stride, pad))
+=======
+def conv(layers, c_in, c_out, k_size, stride=1, pad=0, leaky=True, bn=False, wn=False, pixel=False, only=False):
+    if wn:  layers.append(equalized_conv2d(c_in, c_out, k_size, stride, pad, initializer='kaiming'))
+    else:   layers.append(nn.Conv2d(c_in, c_out, k_size, stride, pad))
+>>>>>>> 15d4fa8a8bdba6078f1a98296a57ba6825a754a5
     if not only:
         if leaky:   layers.append(nn.LeakyReLU(0.2))
         else:       layers.append(nn.ReLU())

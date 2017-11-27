@@ -32,12 +32,19 @@ parser.add_argument('--stab_tick', type=int, default=100)       # stabilization 
 ## network structure.
 parser.add_argument('--flag_wn', type=bool, default=True)           # use of equalized-learning rate.
 parser.add_argument('--flag_bn', type=bool, default=False)          # use of batch-normalization. (not recommended)
+<<<<<<< HEAD
 parser.add_argument('--flag_pixelwise', type=bool, default=True)    # use of pixelwise normalization for generator.
 parser.add_argument('--flag_gdrop', type=bool, default=True)        # use of generalized dropout layer for discriminator.
 parser.add_argument('--flag_leaky', type=bool, default=True)        # use of leaky relu instead of relu.
 parser.add_argument('--flag_tanh', type=bool, default=False)        # use of tanh at the end of the generator.
 parser.add_argument('--flag_sigmoid', type=bool, default=False)     # use of sigmoid at the end of the discriminator.
 parser.add_argument('--flag_add_noise', type=bool, default=True)    # add noise to the real image(x)
+=======
+parser.add_argument('--flag_pixelwise', type=bool, default=True)    # use of pixelwise normalization.
+parser.add_argument('--flag_leaky', type=bool, default=True)        # use of leaky relu instead of relu.
+parser.add_argument('--flag_tanh', type=bool, default=False)        # use of tanh at the end of the generator.
+parser.add_argument('--flag_sigmoid', type=bool, default=False)     # use of sigmoid at the end of the discriminator.
+>>>>>>> 15d4fa8a8bdba6078f1a98296a57ba6825a754a5
 
 
 

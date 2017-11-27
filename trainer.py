@@ -43,7 +43,10 @@ class trainer:
         self.phase = 'init'
         self.flag_flush_gen = False
         self.flag_flush_dis = False
+<<<<<<< HEAD
         self.flag_add_noise = self.config.flag_add_noise
+=======
+>>>>>>> 15d4fa8a8bdba6078f1a98296a57ba6825a754a5
         
         # network and cirterion
         self.G = net.Generator(config)
