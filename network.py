@@ -3,14 +3,14 @@ import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
 from torch.autograd import Variable
-from custom_layers import fadein_layer, ConcatTable, minibatch_std_concat_layer, Flatten, pixelwise_norm_layer, equalized_conv2d, equalized_deconv2d, equalized_linear
+from custom_layers import *
 import copy
 
 
 # defined for code simplicity.
 def deconv(layers, c_in, c_out, k_size, stride=1, pad=0, leaky=True, bn=False, wn=False, pixel=False, only=False):
-    if wn:  layers.append(equalized_deconv2d(c_in, c_out, k_size, stride, pad))
-    else:   layers.append(nn.ConvTranspose2d(c_in, c_out, k_size, stride, pad))
+    if wn:  layers.append(equalized_conv2d(c_in, c_out, k_size, stride, pad))
+    else:   layers.append(nn.Conv2d(c_in, c_out, k_size, stride, pad))
     if not only:
         if leaky:   layers.append(nn.LeakyReLU(0.2))
         else:       layers.append(nn.ReLU())
@@ -18,9 +18,10 @@ def deconv(layers, c_in, c_out, k_size, stride=1, pad=0, leaky=True, bn=False, w
         if pixel:   layers.append(pixelwise_norm_layer())
     return layers
 
-def conv(layers, c_in, c_out, k_size, stride=1, pad=0, leaky=True, bn=False, wn=False, pixel=False, only=False):
-    if wn:  layers.append(equalized_conv2d(c_in, c_out, k_size, stride, pad, initializer='kaiming'))
-    else:   layers.append(nn.Conv2d(c_in, c_out, k_size, stride, pad))
+def conv(layers, c_in, c_out, k_size, stride=1, pad=0, leaky=True, bn=False, wn=False, pixel=False, gdrop=True, only=False):
+    if gdrop:       layers.append(generalized_drop_out(mode='prop', strength=0.0))
+    if wn:          layers.append(equalized_conv2d(c_in, c_out, k_size, stride, pad, initializer='kaiming'))
+    else:           layers.append(nn.Conv2d(c_in, c_out, k_size, stride, pad))
     if not only:
         if leaky:   layers.append(nn.LeakyReLU(0.2))
         else:       layers.append(nn.ReLU())
@@ -31,7 +32,7 @@ def conv(layers, c_in, c_out, k_size, stride=1, pad=0, leaky=True, bn=False, wn=
 def linear(layers, c_in, c_out, sig=True, wn=False):
     layers.append(Flatten())
     if wn:      layers.append(equalized_linear(c_in, c_out))
-    else:       layers.append(nn.Linear(c_in, c_out))
+    else:       layers.append(Linear(c_in, c_out))
     if sig:     layers.append(nn.Sigmoid())
     return layers
 
@@ -69,6 +70,7 @@ class Generator(nn.Module):
         self.flag_wn = config.flag_wn
         self.flag_leaky = config.flag_leaky
         self.flag_tanh = config.flag_tanh
+        self.flag_norm_latent = config.flag_norm_latent
         self.nc = config.nc
         self.nz = config.nz
         self.ngf = config.ngf
@@ -79,7 +81,9 @@ class Generator(nn.Module):
     def first_block(self):
         layers = []
         ndim = self.ngf
-        layers = deconv(layers, self.nz, ndim, 4, 1, 0, self.flag_leaky, self.flag_bn, self.flag_wn, self.flag_pixelwise)
+        if self.flag_norm_latent:
+            layers.append(pixelwise_norm_layer())
+        layers = deconv(layers, self.nz, ndim, 4, 1, 3, self.flag_leaky, self.flag_bn, self.flag_wn, self.flag_pixelwise)
         layers = deconv(layers, ndim, ndim, 3, 1, 1, self.flag_leaky, self.flag_bn, self.flag_wn, self.flag_pixelwise)
         return  nn.Sequential(*layers), ndim
 
@@ -172,7 +176,7 @@ class Generator(nn.Module):
             print(self.model)
 
     def freeze_layers(self):
-        # let's freeze pretrained blocks.
+        # let's freeze pretrained blocks. (Found freezing layers not helpful, so did not use this func.)
         print('freeze pretrained weights ... ')
         for param in self.model.parameters():
             param.requires_grad = False
@@ -224,11 +228,11 @@ class Discriminator(nn.Module):
                 ndim = ndim/2
         layers = []
         if halving:
-            layers = deconv(layers, ndim, ndim, 3, 1, 1, self.flag_leaky, self.flag_bn, self.flag_wn, pixel=False)
-            layers = deconv(layers, ndim, ndim*2, 3, 1, 1, self.flag_leaky, self.flag_bn, self.flag_wn, pixel=False)
+            layers = conv(layers, ndim, ndim, 3, 1, 1, self.flag_leaky, self.flag_bn, self.flag_wn, pixel=False)
+            layers = conv(layers, ndim, ndim*2, 3, 1, 1, self.flag_leaky, self.flag_bn, self.flag_wn, pixel=False)
         else:
-            layers = deconv(layers, ndim, ndim, 3, 1, 1, self.flag_leaky, self.flag_bn, self.flag_wn, pixel=False)
-            layers = deconv(layers, ndim, ndim, 3, 1, 1, self.flag_leaky, self.flag_bn, self.flag_wn, pixel=False)
+            layers = conv(layers, ndim, ndim, 3, 1, 1, self.flag_leaky, self.flag_bn, self.flag_wn, pixel=False)
+            layers = conv(layers, ndim, ndim, 3, 1, 1, self.flag_leaky, self.flag_bn, self.flag_wn, pixel=False)
         
         layers.append(nn.AvgPool2d(kernel_size=2))       # scale up by factor of 2.0
         return  nn.Sequential(*layers), ndim, layer_name
@@ -301,7 +305,7 @@ class Discriminator(nn.Module):
             print self.model
     
     def freeze_layers(self):
-        # let's freeze pretrained blocks.
+        # let's freeze pretrained blocks. (Found freezing layers not helpful, so did not use this func.)
         print('freeze pretrained weights ... ')
         for param in self.model.parameters():
             param.requires_grad = False
