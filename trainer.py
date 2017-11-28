@@ -10,6 +10,7 @@ from torch.optim import Adam
 from tqdm import tqdm
 import tf_recorder as tensorboard
 import utils as utils
+import numpy as np
 
 
 class trainer:
@@ -42,6 +43,7 @@ class trainer:
         self.phase = 'init'
         self.flag_flush_gen = False
         self.flag_flush_dis = False
+        self.flag_add_noise = self.config.flag_add_noise
         
         # network and cirterion
         self.G = net.Generator(config)
@@ -211,6 +213,21 @@ class trainer:
             return x
 
 
+    def add_noise(self, x):
+        # TODO: support more method of adding noise.
+        if self.flag_add_noise==False:
+            return x
+
+        if hasattr(self, '_d_'):
+            self._d_ = self._d_ * 0.9 + torch.mean(self.fx_tilde).data[0] * 0.1
+        else:
+            self._d_ = 0.0
+        strength = 0.2 * max(0, self._d_ - 0.5)**2
+        z = np.random.randn(*x.size()).astype(np.float32) * strength
+        z = Variable(torch.from_numpy(z)) if self.use_cuda else Variable(torch.from_numpy(noise)).cuda()
+        return x + z
+
+
     def train(self):
         # noise for test.
         self.z_test = torch.FloatTensor(self.loader.batchsize, self.nz)
@@ -237,12 +254,14 @@ class trainer:
 
                 # update discriminator.
                 self.x.data = self.feed_interpolated_input(self.loader.get_batch())
+                if self.flag_add_noise:
+                    self.x = self.add_noise(self.x)
                 self.z.data.resize_(self.loader.batchsize, self.nz).normal_(0.0, 1.0)
                 self.x_tilde = self.G(self.z)
                
-                fx = self.D(self.x)
-                fx_tilde = self.D(self.x_tilde.detach())
-                loss_d = self.mse(fx, self.real_label) + self.mse(fx_tilde, self.fake_label)
+                self.fx = self.D(self.x)
+                self.fx_tilde = self.D(self.x_tilde.detach())
+                loss_d = self.mse(self.fx, self.real_label) + self.mse(self.fx_tilde, self.fake_label)
                 loss_d.backward()
                 self.opt_d.step()
 
