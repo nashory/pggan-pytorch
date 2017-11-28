@@ -184,29 +184,4 @@ class generalized_drop_out(nn.Module):
         return self.__class__.__name__ + param_str
 
 
-class WScaleLayer(nn.Module):
-    def __init__(self, incoming, initializer='kaiming'):
-        super(WScaleLayer, self).__init__()
-        self.incoming = incoming
-        if initializer == 'kaiming':    torch.nn.init.kaiming_normal(self.incoming.weight)
-        elif initializer == 'xavier':   torch.nn.init.xavier_normal(self.incoming.weight)
-
-        self.scale = (torch.mean(self.incoming.weight.data ** 2)) ** 0.5
-        self.incoming.weight.data.copy_(self.incoming.weight.data / self.scale)
-        self.bias = None
-        if self.incoming.bias is not None:
-            self.bias = self.incoming.bias
-            self.incoming.bias = None
-
-    def forward(self, x):
-        x = self.scale * x
-        if self.bias is not None:
-            x += self.bias.view(1, self.bias.size()[0], 1, 1)
-        return x
-
-    def __repr__(self):
-        param_str = '(incoming = %s)' % (self.incoming.__class__.__name__)
-        return self.__class__.__name__ + param_str 
-
-
 
