@@ -28,6 +28,7 @@ class trainer:
 
         self.resl = 2           # we start from 2^2 = 4
         self.lr = config.lr
+        self.eps_drift = config.eps_drift
         self.smoothing = config.smoothing
         self.max_resl = config.max_resl
         self.trns_tick = config.trns_tick
@@ -44,6 +45,7 @@ class trainer:
         self.flag_flush_gen = False
         self.flag_flush_dis = False
         self.flag_add_noise = self.config.flag_add_noise
+        self.flag_add_drift = self.config.flag_add_dirft
         
         # network and cirterion
         self.G = net.Generator(config)
@@ -262,6 +264,7 @@ class trainer:
                 self.fx = self.D(self.x)
                 self.fx_tilde = self.D(self.x_tilde.detach())
                 loss_d = self.mse(self.fx, self.real_label) + self.mse(self.fx_tilde, self.fake_label)
+
                 loss_d.backward()
                 self.opt_d.step()
 
