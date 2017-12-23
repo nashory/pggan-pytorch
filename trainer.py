@@ -224,7 +224,7 @@ class trainer:
             self._d_ = 0.0
         strength = 0.2 * max(0, self._d_ - 0.5)**2
         z = np.random.randn(*x.size()).astype(np.float32) * strength
-        z = Variable(torch.from_numpy(z)) if self.use_cuda else Variable(torch.from_numpy(noise)).cuda()
+        z = Variable(torch.from_numpy(z)) if self.use_cuda else Variable(torch.from_numpy(z)).cuda()
         return x + z
 
 
