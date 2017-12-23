@@ -35,7 +35,7 @@ __[step 2.] Prepare environment using virtualenv__
   $ virtualenv --python=python2.7 venv
   $ . venv/bin/activate
   $ pip install -r requirements.txt
-  $ conda install pytorch=0.2.0 cuda80 -c soumith
+  $ conda install pytorch torchvision -c pytorch
   ~~~
 
 
