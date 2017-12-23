@@ -197,6 +197,8 @@ class trainer:
         
 
     def feed_interpolated_input(self, x):
+        if self.use_cuda:
+            x = x.cuda()
         if self.phase == 'gtrns' and floor(self.resl)>2:
             alpha = self.complete['gen']/100.0
             transform = transforms.Compose( [   transforms.ToPILImage(),
