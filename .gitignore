@@ -40,9 +40,5 @@ repo/
 venv/
 runs/
 
-
-
-
-
-
-
+# pycharm IDE files
+.idea/

@@ -306,12 +306,12 @@ class trainer:
         ndis = 'dis_R{}_T{}.pth'.format(int(floor(self.resl)), self.globalTick)
         ngen = 'gen_R{}_T{}.pth'.format(int(floor(self.resl)), self.globalTick)
         if self.globalTick%50==0:
-            if (self.phase == 'gstab' or self.phase=='dstab'):
+            if self.phase == 'gstab' or self.phase =='dstab':
                 save_path = os.path.join(path, ndis)
                 if not os.path.exists(save_path):
                     utils.save_model(self.D, save_path)
-                    save_path = os.path.join(path, ndis)
-                    utils.save_model(self.D, save_path)
+                    save_path = os.path.join(path, ngen)
+                    utils.save_model(self.G, save_path)
                     print('[snapshot] model saved @ {}'.format(path))
 
 
