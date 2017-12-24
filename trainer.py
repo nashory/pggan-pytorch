@@ -197,8 +197,6 @@ class trainer:
         
 
     def feed_interpolated_input(self, x):
-        if self.use_cuda:
-            x = x.cuda()
         if self.phase == 'gtrns' and floor(self.resl)>2:
             alpha = self.complete['gen']/100.0
             transform = transforms.Compose( [   transforms.ToPILImage(),
@@ -210,6 +208,8 @@ class trainer:
             for i in range(x_low.size(0)):
                 x_low[i] = transform(x_low[i]).mul(2).add(-1)
             x_intp = torch.add(x.mul(alpha), x_low.mul(1-alpha))
+            if self.use_cuda:
+                x_intp = x_intp.cuda()
             return x_intp
         else:
             return x
