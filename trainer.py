@@ -207,12 +207,13 @@ class trainer:
             x_low = x.clone().add(1).mul(0.5)
             for i in range(x_low.size(0)):
                 x_low[i] = transform(x_low[i]).mul(2).add(-1)
-            x_intp = torch.add(x.mul(alpha), x_low.mul(1-alpha))
-            if self.use_cuda:
-                x_intp = x_intp.cuda()
-            return x_intp
+            x = torch.add(x.mul(alpha), x_low.mul(1-alpha)) # interpolated_x
+
+        if self.use_cuda:
+            return x.cuda()
         else:
             return x
+
 
 
     def add_noise(self, x):
