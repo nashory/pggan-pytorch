@@ -9,7 +9,6 @@ __YOUR CONTRIBUTION IS INVALUABLE FOR THIS PROJECT :)__
 + no use of NIN layer. The unnecessary layers (like low-resolution blocks) are automatically flushed out and grow.
 + used torch.utils.weight_norm for to_rgb_layer of generator.
 
-
 ## How to use?
 __[step 1.] Prepare dataset__   
 The author of progressive GAN released CelebA-HQ dataset, and I am working on it.  
@@ -28,14 +27,14 @@ The training data folder should look like :
 ~~~
 
 __[step 2.] Prepare environment using virtualenv__   
-  + you can easily set PyTorch and TensorFlow evnironment using virtualenv.  
+  + you can easily set PyTorch (v0.3) and TensorFlow environment using virtualenv.
   + CAUTION: if you have trouble installing PyTorch, install it mansually using pip. [[PyTorch Install]](http://pytorch.org/)
   
   ~~~
   $ virtualenv --python=python2.7 venv
   $ . venv/bin/activate
   $ pip install -r requirements.txt
-  $ conda install pytorch=0.2.0 cuda80 -c soumith
+  $ conda install pytorch torchvision -c pytorch
   ~~~
 
 
