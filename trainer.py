@@ -108,7 +108,7 @@ class trainer:
                 self.fadein['dis'].update_alpha(d_alpha)
                 self.complete['dis'] = self.fadein['dis'].alpha*100
                 self.phase = 'dtrns'
-            elif self.resl%1.0 >= (self.stab_tick + self.trns_tick*2)*delta:
+            elif self.resl%1.0 >= (self.stab_tick + self.trns_tick*2)*delta and self.phase!='final':
                 self.phase = 'dstab'
             
         prev_kimgs = self.kimgs
@@ -127,6 +127,7 @@ class trainer:
                     self.complete['gen'] = self.fadein['gen'].alpha*100
                 self.flag_flush_gen = False
                 self.G.module.flush_network()   # flush G
+                print(self.G.module.model)
                 #self.Gs.module.flush_network()         # flush Gs
                 self.fadein['gen'] = None
                 self.complete['gen'] = 0.0
@@ -137,12 +138,14 @@ class trainer:
                     self.complete['dis'] = self.fadein['dis'].alpha*100
                 self.flag_flush_dis = False
                 self.D.module.flush_network()   # flush and,
+                print(self.D.module.model)
                 self.fadein['dis'] = None
                 self.complete['dis'] = 0.0
-                self.phase = 'gtrns'
-                    
+                if floor(self.resl) < self.max_resl and self.phase != 'final':
+                    self.phase = 'gtrns'
+
             # grow network.
-            if floor(self.resl) != prev_resl:
+            if floor(self.resl) != prev_resl and floor(self.resl)<self.max_resl+1:
                 self.lr = self.lr * float(self.config.lr_decay)
                 self.G.module.grow_network(floor(self.resl))
                 #self.Gs.module.grow_network(floor(self.resl))
@@ -153,15 +156,16 @@ class trainer:
                 self.flag_flush_gen = True
                 self.flag_flush_dis = True
 
-        if floor(self.resl) >= self.max_resl:
-            self.resl = self.max_resl
+            if floor(self.resl) >= self.max_resl and self.resl%1.0 >= (self.stab_tick + self.trns_tick*2)*delta:
+                self.phase = 'final'
+                self.resl = self.max_resl + (self.stab_tick + self.trns_tick*2)*delta
 
 
             
     def renew_everything(self):
         # renew dataloader.
         self.loader = DL.dataloader(config)
-        self.loader.renew(floor(self.resl))
+        self.loader.renew(min(floor(self.resl), self.max_resl))
         
         # define tensors
         self.z = torch.FloatTensor(self.loader.batchsize, self.nz)
@@ -199,7 +203,7 @@ class trainer:
         
 
     def feed_interpolated_input(self, x):
-        if self.phase == 'gtrns' and floor(self.resl)>2:
+        if self.phase == 'gtrns' and floor(self.resl)>2 and floor(self.resl)<=self.max_resl:
             alpha = self.complete['gen']/100.0
             transform = transforms.Compose( [   transforms.ToPILImage(),
                                                 transforms.Scale(size=int(pow(2,floor(self.resl)-1)), interpolation=0),      # 0: nearest
@@ -305,19 +309,36 @@ class trainer:
                     self.tb.add_image_grid('grid/x_intp', 4, utils.adjust_dyn_range(self.x.data.float(), [-1,1], [0,1]), self.globalIter)
 
 
+    def get_state(self, target):
+        if target == 'gen':
+            state = {
+                'resl' : self.resl,
+                'state_dict' : self.G.module.state_dict(),
+                'optimizer' : self.opt_g.state_dict(),
+            }
+            return state
+        elif target == 'dis':
+            state = {
+                'resl' : self.resl,
+                'state_dict' : self.D.module.state_dict(),
+                'optimizer' : self.opt_d.state_dict(),
+            }
+            return state
+
+
     def snapshot(self, path):
         if not os.path.exists(path):
             os.system('mkdir -p {}'.format(path))
         # save every 100 tick if the network is in stab phase.
-        ndis = 'dis_R{}_T{}.pth'.format(int(floor(self.resl)), self.globalTick)
-        ngen = 'gen_R{}_T{}.pth'.format(int(floor(self.resl)), self.globalTick)
+        ndis = 'dis_R{}_T{}.pth.tar'.format(int(floor(self.resl)), self.globalTick)
+        ngen = 'gen_R{}_T{}.pth.tar'.format(int(floor(self.resl)), self.globalTick)
         if self.globalTick%50==0:
-            if self.phase == 'gstab' or self.phase =='dstab':
+            if self.phase == 'gstab' or self.phase =='dstab' or self.phase == 'final':
                 save_path = os.path.join(path, ndis)
                 if not os.path.exists(save_path):
-                    utils.save_model(self.D, save_path)
+                    torch.save(self.get_state('dis'), save_path)
                     save_path = os.path.join(path, ngen)
-                    utils.save_model(self.G, save_path)
+                    torch.save(self.get_state('gen'), save_path)
                     print('[snapshot] model saved @ {}'.format(path))
 
 

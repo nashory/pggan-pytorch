@@ -68,8 +68,14 @@ __[step 4.] Display on tensorboard__
   ~~~
   
   
+__[step 5.] Generate fake images using linear interpolation__   
+~~~
+CUDA_VISIBLE_DEVICES=0 python generate_interpolated.py
+~~~
+  
+  
 ## Experimental results   
-The result of higher resolution(more than 256x256) will be updated soon.  
+The result of higher resolution(larger than 256x256) will be updated soon.  
 
 __Generated Images__
 

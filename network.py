@@ -89,7 +89,7 @@ class Generator(nn.Module):
 
     def intermediate_block(self, resl):
         halving = False
-        layer_name = 'itermediate_{}x{}_{}x{}'.format(pow(2,resl-1), pow(2,resl-1), pow(2, resl), pow(2, resl))
+        layer_name = 'intermediate_{}x{}_{}x{}'.format(int(pow(2,resl-1)), int(pow(2,resl-1)), int(pow(2, resl)), int(pow(2, resl)))
         ndim = self.ngf
         if resl==3 or resl==4 or resl==5:
             halving = False
@@ -132,7 +132,7 @@ class Generator(nn.Module):
                 new_model[-1].load_state_dict(module.state_dict())      # copy pretrained weights
             
         if resl >= 3 and resl <= 9:
-            print 'growing network[{}x{} to {}x{}]. It may take few seconds...'.format(pow(2,resl-1), pow(2,resl-1), pow(2,resl), pow(2,resl))
+            print 'growing network[{}x{} to {}x{}]. It may take few seconds...'.format(int(pow(2,resl-1)), int(pow(2,resl-1)), int(pow(2,resl)), int(pow(2,resl)))
             low_resl_to_rgb = deepcopy_module(self.model, 'to_rgb_block')
             prev_block = nn.Sequential()
             prev_block.add_module('low_resl_upsample', nn.Upsample(scale_factor=2, mode='nearest'))
@@ -168,12 +168,10 @@ class Generator(nn.Module):
             new_model.add_module('to_rgb_block', high_resl_to_rgb)
             self.model = new_model
             self.module_names = get_module_names(self.model)
-            print(self.model)
             
 
         except:
             self.model = self.model
-            print(self.model)
 
     def freeze_layers(self):
         # let's freeze pretrained blocks. (Found freezing layers not helpful, so did not use this func.)
@@ -217,7 +215,7 @@ class Discriminator(nn.Module):
     
     def intermediate_block(self, resl):
         halving = False
-        layer_name = 'itermediate_{}x{}_{}x{}'.format(pow(2,resl), pow(2,resl), pow(2, resl-1), pow(2, resl-1))
+        layer_name = 'intermediate_{}x{}_{}x{}'.format(int(pow(2,resl)), int(pow(2,resl)), int(pow(2, resl-1)), int(pow(2, resl-1)))
         ndim = self.ndf
         if resl==3 or resl==4 or resl==5:
             halving = False
@@ -254,7 +252,7 @@ class Discriminator(nn.Module):
     def grow_network(self, resl):
             
         if resl >= 3 and resl <= 9:
-            print 'growing network[{}x{} to {}x{}]. It may take few seconds...'.format(pow(2,resl-1), pow(2,resl-1), pow(2,resl), pow(2,resl))
+            print 'growing network[{}x{} to {}x{}]. It may take few seconds...'.format(int(pow(2,resl-1)), int(pow(2,resl-1)), int(pow(2,resl)), int(pow(2,resl)))
             low_resl_from_rgb = deepcopy_module(self.model, 'from_rgb_block')
             prev_block = nn.Sequential()
             prev_block.add_module('low_resl_downsample', nn.AvgPool2d(kernel_size=2))
@@ -299,10 +297,8 @@ class Discriminator(nn.Module):
 
             self.model = new_model
             self.module_names = get_module_names(self.model)
-            print new_model
         except:
             self.model = self.model
-            print self.model
     
     def freeze_layers(self):
         # let's freeze pretrained blocks. (Found freezing layers not helpful, so did not use this func.)
