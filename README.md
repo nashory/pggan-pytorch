@@ -69,8 +69,7 @@ __[step 4.] Display on tensorboard__
   
   
 ## Experimental results   
-The model is still being trained at this moment.  
-The result of higher resolution will be updated soon.  
+The result of higher resolution(more than 256x256) will be updated soon.  
 
 __Generated Images__
 
@@ -79,6 +78,8 @@ __Generated Images__
 <img src="https://github.com/nashory/gifs/blob/pggan-pytorch/8_16.gif?raw=true" width="430" height="430"> <img src="https://puu.sh/yufMz/dd74f56d36.jpg" width="430" height="430">  
 <img src="https://github.com/nashory/gifs/blob/pggan-pytorch/16_32.gif?raw=true" width="430" height="430"> <img src="https://puu.sh/yufLF/013cc59c15.jpg" width="430" height="430">  
 <img src="https://github.com/nashory/gifs/blob/pggan-pytorch/32_64.gif?raw=true" width="430" height="430"> <img src="https://puu.sh/yufMV/835ec431ea.jpg" width="430" height="430">  
+<img src="https://github.com/nashory/gifs/blob/pggan-pytorch/64_128.gif?raw=true" width="430" height="430"> <img src="https://puu.sh/yNT76/551760208c.jpg" width="430" height="430">  
+<img src="https://github.com/nashory/gifs/blob/pggan-pytorch/128_256.gif?raw=true" width="430" height="430"> <img src="https://puu.sh/yNSS3/93a11066a7.jpg" width="430" height="430">  
 
 
 __Loss Curve__
@@ -87,7 +88,7 @@ __Loss Curve__
 
 ## To-Do List (will be implemented soon)
 - [X] Support WGAN-GP loss
-- [X] training resume
+- [X] training resuming functionality.
 - [X] loading CelebA-HQ dataset (for 512x512 and 1024x0124 training)
 
 
