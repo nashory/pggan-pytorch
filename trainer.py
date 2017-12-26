@@ -45,7 +45,7 @@ class trainer:
         self.flag_flush_gen = False
         self.flag_flush_dis = False
         self.flag_add_noise = self.config.flag_add_noise
-        self.flag_add_drift = self.config.flag_add_dirft
+        self.flag_add_drift = self.config.flag_add_drift
         
         # network and cirterion
         self.G = net.Generator(config)
