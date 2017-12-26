@@ -18,6 +18,7 @@ parser.add_argument('--n_gpu', type=int, default=1)             # for Multi-GPU 
 ## training parameters.
 parser.add_argument('--lr', type=float, default=0.001)          # learning rate.
 parser.add_argument('--lr_decay', type=float, default=0.87)     # learning rate decay at every resolution transition.
+parser.add_argument('--eps_drift', type=float, default=0.001)   # coeff for the drift loss.
 parser.add_argument('--smoothing', type=float, default=0.997)   # smoothing factor for smoothed generator.
 parser.add_argument('--nc', type=int, default=3)                # number of input channel.
 parser.add_argument('--nz', type=int, default=512)              # input dimension of noise.
@@ -35,10 +36,12 @@ parser.add_argument('--flag_bn', type=bool, default=False)          # use of bat
 parser.add_argument('--flag_pixelwise', type=bool, default=True)    # use of pixelwise normalization for generator.
 parser.add_argument('--flag_gdrop', type=bool, default=True)        # use of generalized dropout layer for discriminator.
 parser.add_argument('--flag_leaky', type=bool, default=True)        # use of leaky relu instead of relu.
-parser.add_argument('--flag_tanh', type=bool, default=False)         # use of tanh at the end of the generator.
-parser.add_argument('--flag_sigmoid', type=bool, default=False)      # use of sigmoid at the end of the discriminator.
+parser.add_argument('--flag_tanh', type=bool, default=False)        # use of tanh at the end of the generator.
+parser.add_argument('--flag_sigmoid', type=bool, default=False)     # use of sigmoid at the end of the discriminator.
 parser.add_argument('--flag_add_noise', type=bool, default=True)    # add noise to the real image(x)
-parser.add_argument('--flag_norm_latent', type=bool, default=False)  # pixelwise normalization of latent vector (z)
+parser.add_argument('--flag_norm_latent', type=bool, default=False) # pixelwise normalization of latent vector (z)
+parser.add_argument('--flag_add_drift', type=bool, default=True)   # add drift loss
+
 
 
 
