@@ -98,6 +98,7 @@ class Generator(nn.Module):
             halving = True
             for i in range(int(resl)-5):
                 ndim = ndim/2
+        ndim = int(ndim)
         layers = []
         layers.append(nn.Upsample(scale_factor=2, mode='nearest'))       # scale up by factor of 2.0
         if halving:
@@ -224,6 +225,7 @@ class Discriminator(nn.Module):
             halving = True
             for i in range(int(resl)-5):
                 ndim = ndim/2
+        ndim = int(ndim)
         layers = []
         if halving:
             layers = conv(layers, ndim, ndim, 3, 1, 1, self.flag_leaky, self.flag_bn, self.flag_wn, pixel=False)
