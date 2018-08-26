@@ -11,7 +11,8 @@ import utils as utils
 
 class tf_recorder:
     def __init__(self):
-        os.system('mkdir -p repo/tensorboard')
+        utils.mkdir('repo/tensorboard')
+        
         for i in range(1000):
             self.targ = 'repo/tensorboard/try_{}'.format(i)
             if not os.path.exists(self.targ):

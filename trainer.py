@@ -171,8 +171,8 @@ class trainer:
         self.z = torch.FloatTensor(self.loader.batchsize, self.nz)
         self.x = torch.FloatTensor(self.loader.batchsize, 3, self.loader.imsize, self.loader.imsize)
         self.x_tilde = torch.FloatTensor(self.loader.batchsize, 3, self.loader.imsize, self.loader.imsize)
-        self.real_label = torch.FloatTensor(self.loader.batchsize).fill_(1)
-        self.fake_label = torch.FloatTensor(self.loader.batchsize).fill_(0)
+        self.real_label = torch.FloatTensor(self.loader.batchsize, 1).fill_(1)
+        self.fake_label = torch.FloatTensor(self.loader.batchsize, 1).fill_(0)
 
         # enable cuda
         if self.use_cuda:
@@ -228,7 +228,7 @@ class trainer:
             return x
 
         if hasattr(self, '_d_'):
-            self._d_ = self._d_ * 0.9 + torch.mean(self.fx_tilde).data[0] * 0.1
+            self._d_ = self._d_ * 0.9 + torch.mean(self.fx_tilde).item() * 0.1
         else:
             self._d_ = 0.0
         strength = 0.2 * max(0, self._d_ - 0.5)**2
@@ -242,7 +242,7 @@ class trainer:
         self.z_test = torch.FloatTensor(self.loader.batchsize, self.nz)
         if self.use_cuda:
             self.z_test = self.z_test.cuda()
-        self.z_test = Variable(self.z_test, volatile=True)
+        self.z_test = Variable(self.z_test)
         self.z_test.data.resize_(self.loader.batchsize, self.nz).normal_(0.0, 1.0)
         
         
@@ -282,7 +282,7 @@ class trainer:
                 self.opt_g.step()
 
                 # logging.
-                log_msg = ' [E:{0}][T:{1}][{2:6}/{3:6}]  errD: {4:.4f} | errG: {5:.4f} | [lr:{11:.5f}][cur:{6:.3f}][resl:{7:4}][{8}][{9:.1f}%][{10:.1f}%]'.format(self.epoch, self.globalTick, self.stack, len(self.loader.dataset), loss_d.data[0], loss_g.data[0], self.resl, int(pow(2,floor(self.resl))), self.phase, self.complete['gen'], self.complete['dis'], self.lr)
+                log_msg = ' [E:{0}][T:{1}][{2:6}/{3:6}]  errD: {4:.4f} | errG: {5:.4f} | [lr:{11:.5f}][cur:{6:.3f}][resl:{7:4}][{8}][{9:.1f}%][{10:.1f}%]'.format(self.epoch, self.globalTick, self.stack, len(self.loader.dataset), loss_d.item(), loss_g.item(), self.resl, int(pow(2,floor(self.resl))), self.phase, self.complete['gen'], self.complete['dis'], self.lr)
                 tqdm.write(log_msg)
 
                 # save model.
@@ -291,17 +291,17 @@ class trainer:
                 # save image grid.
                 if self.globalIter%self.config.save_img_every == 0:
                     x_test = self.G(self.z_test)
-                    os.system('mkdir -p repo/save/grid')
+                    utils.mkdir('repo/save/grid')
                     utils.save_image_grid(x_test.data, 'repo/save/grid/{}_{}_G{}_D{}.jpg'.format(int(self.globalIter/self.config.save_img_every), self.phase, self.complete['gen'], self.complete['dis']))
-                    os.system('mkdir -p repo/save/resl_{}'.format(int(floor(self.resl))))
+                    utils.mkdir('repo/save/resl_{}'.format(int(floor(self.resl))))
                     utils.save_image_single(x_test.data, 'repo/save/resl_{}/{}_{}_G{}_D{}.jpg'.format(int(floor(self.resl)),int(self.globalIter/self.config.save_img_every), self.phase, self.complete['gen'], self.complete['dis']))
 
 
                 # tensorboard visualization.
                 if self.use_tb:
                     x_test = self.G(self.z_test)
-                    self.tb.add_scalar('data/loss_g', loss_g.data[0], self.globalIter)
-                    self.tb.add_scalar('data/loss_d', loss_d.data[0], self.globalIter)
+                    self.tb.add_scalar('data/loss_g', loss_g.item(), self.globalIter)
+                    self.tb.add_scalar('data/loss_d', loss_d.item(), self.globalIter)
                     self.tb.add_scalar('tick/lr', self.lr, self.globalIter)
                     self.tb.add_scalar('tick/cur_resl', int(pow(2,floor(self.resl))), self.globalIter)
                     self.tb.add_image_grid('grid/x_test', 4, utils.adjust_dyn_range(x_test.data.float(), [-1,1], [0,1]), self.globalIter)
@@ -328,7 +328,10 @@ class trainer:
 
     def snapshot(self, path):
         if not os.path.exists(path):
-            os.system('mkdir -p {}'.format(path))
+            if os.name == 'nt':
+                os.system('mkdir {}'.format(path.replace('/', '\\')))
+            else:
+                os.system('mkdir -p {}'.format(path))
         # save every 100 tick if the network is in stab phase.
         ndis = 'dis_R{}_T{}.pth.tar'.format(int(floor(self.resl)), self.globalTick)
         ngen = 'gen_R{}_T{}.pth.tar'.format(int(floor(self.resl)), self.globalTick)
@@ -341,14 +344,14 @@ class trainer:
                     torch.save(self.get_state('gen'), save_path)
                     print('[snapshot] model saved @ {}'.format(path))
 
-
-## perform training.
-print '----------------- configuration -----------------'
-for k, v in vars(config).items():
-    print('  {}: {}').format(k, v)
-print '-------------------------------------------------'
-torch.backends.cudnn.benchmark = True           # boost speed.
-trainer = trainer(config)
-trainer.train()
+if __name__ == '__main__':
+    ## perform training.
+    print('----------------- configuration -----------------')
+    for k, v in vars(config).items():
+        print('  {}: {}'.format(k, v))
+    print('-------------------------------------------------')
+    torch.backends.cudnn.benchmark = True           # boost speed.
+    trainer = trainer(config)
+    trainer.train()
 
 
