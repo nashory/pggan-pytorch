@@ -290,7 +290,8 @@ class trainer:
 
                 # save image grid.
                 if self.globalIter%self.config.save_img_every == 0:
-                    x_test = self.G(self.z_test)
+                    with torch.no_grad():
+                        x_test = self.G(self.z_test)
                     utils.mkdir('repo/save/grid')
                     utils.save_image_grid(x_test.data, 'repo/save/grid/{}_{}_G{}_D{}.jpg'.format(int(self.globalIter/self.config.save_img_every), self.phase, self.complete['gen'], self.complete['dis']))
                     utils.mkdir('repo/save/resl_{}'.format(int(floor(self.resl))))
@@ -299,7 +300,8 @@ class trainer:
 
                 # tensorboard visualization.
                 if self.use_tb:
-                    x_test = self.G(self.z_test)
+                    with torch.no_grad():
+                        x_test = self.G(self.z_test)
                     self.tb.add_scalar('data/loss_g', loss_g.item(), self.globalIter)
                     self.tb.add_scalar('data/loss_d', loss_d.item(), self.globalIter)
                     self.tb.add_scalar('tick/lr', self.lr, self.globalIter)
