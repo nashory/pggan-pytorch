@@ -278,33 +278,25 @@ class trainer:
                
                 self.fx = self.D(self.x)
                 self.fx_tilde = self.D(self.x_tilde.detach())
+		
+		#Check Size of Tensor:
 		sz_up = (32,1,1)
 		sz_perfect = (32,1)
-                print(self.fx.size())
-		print(self.fx_tilde.size())
-		print(self.real_label.size())
-		print(self.fake_label.size())
+		
 		if(self.real_label.size() != sz_perfect):
 			self.real_label.unsqueeze_(1)
 		if(self.fake_label.size() != sz_perfect):
 			self.fake_label.unsqueeze_(1)	
-		print(self.real_label.size())
-		print(self.fake_label.size())
-	#	print(self.real_label)
-	#	print(self.fake_label)
-		
-		
-		#Check Size of Tensor:
 		r3al_label = self.real_label.size() 
 		f8ke_label = self.fake_label.size()
 		
 		if(r3al_label == sz_up):
 			torch.squeeze(self.real_label)
-			print("sucsess!!!")
-			print(self.real_label.size())
+			#print("sucsess!!!")
+	      		#print(self.real_label.size())
 		if(f8ke_label == sz_up):
 			torch.squeeze(self.fake_label)
- 			print("sucsess!!!")
+ 			#print("sucsess!!!")
 				
 		loss_d = self.mse(self.fx, self.real_label) + self.mse(self.fx_tilde, self.fake_label)
                 loss_d.backward()
