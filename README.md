@@ -102,5 +102,8 @@ __Loss Curve__
 + [TuXiaokang/DCGAN.PyTorch](https://github.com/TuXiaokang/DCGAN.PyTorch)
 
 ##
-DeMarcus Edwards
+## Author
+MinchulShin, [@nashory](https://github.com/nashory)  
+## Contributors
+DeMarcus Edwards, [@Djmcflush](https://github.com/Djmcflush)
 
