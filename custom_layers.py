@@ -64,7 +64,7 @@ class minibatch_std_concat_layer(nn.Module):
         vals = self.adjusted_std(x, dim=0, keepdim=True)
         if self.averaging == 'all':
             target_shape[1] = 1
-            vals = torch.mean(vals, keepdim=True)
+            vals = torch.mean(vals, dim=1, keepdim=True)
         elif self.averaging == 'spatial':
             if len(shape) == 4:
                 vals = mean(vals, axis=[2,3], keepdim=True)             # torch.mean(torch.mean(vals, 2, keepdim=True), 3, keepdim=True)

@@ -8,28 +8,28 @@ __YOUR CONTRIBUTION IS INVALUABLE FOR THIS PROJECT :)__
 + original: trans(G)-->trans(D)-->stab / my code: trans(G)-->stab-->transition(D)-->stab
 + no use of NIN layer. The unnecessary layers (like low-resolution blocks) are automatically flushed out and grow.
 + used torch.utils.weight_norm for to_rgb_layer of generator.
++ No need to implement the the Celeb A data, Just come with your own dataset :)
 
 
 ## How to use?
 __[step 1.] Prepare dataset__   
-The author of progressive GAN released CelebA-HQ dataset, and I am working on it.  
-Before then please use CelebA to generate up to 256x256 face images.
-The CelebA-HQ dataloading would be supported very soon.
+The author of progressive GAN released CelebA-HQ dataset, and which Nash is working on over on the branch that i forked this from. For my version just make sure that all images are the children of that folder that you declare in Config.py. Also i warn you that if you use multiple classes, they should be similar as to not end up with attrocities. 
 
 ~~~
 ---------------------------------------------
 The training data folder should look like : 
 <train_data_root>
-                |--CelebA
-                        |--image1
-                        |--image2
-                        |--image3 ...
+                |--Your Folder
+                        |--image 1
+                        |--image 2
+                        |--image 3 ...
 ---------------------------------------------
 ~~~
 
 __[step 2.] Prepare environment using virtualenv__   
   + you can easily set PyTorch and TensorFlow evnironment using virtualenv.  
   + CAUTION: if you have trouble installing PyTorch, install it mansually using pip. [[PyTorch Install]](http://pytorch.org/)
+  + For install please take your time and install all dependencies of PyTorch and also install tensorflow
   
   ~~~
   $ virtualenv --python=python2.7 venv
@@ -56,7 +56,7 @@ __[step 3.] Run training__
 ~~~~
  
   
-__[step 4.] Display on tensorboard__   
+__[step 4.] Display on tensorboard__   (At the moment skip this part)
 + you can check the results on tensorboard.
 
 <p align="center"><img src="https://puu.sh/ympU0/c38f4e7d33.png" width="700"></p>   
@@ -86,13 +86,13 @@ __Loss Curve__
 ![image](https://puu.sh/yuhi4/a49686b220.png)
 
 ## To-Do List (will be implemented soon)
-- [X] Support WGAN-GP loss
-- [X] training resume
-- [X] loading CelebA-HQ dataset (for 512x512 and 1024x0124 training)
+- Fix tensorboard support issues
+- Add capability of supporting 1 channel images
+
 
 
 ## Compatability
-+ cuda v8.0
++ cuda v8.0 (if you dont have it dont worry)
 + Tesla P40 (you may need more than 12GB Memory. If not, please adjust the batch_table in `dataloader.py`)
 
 
@@ -101,8 +101,8 @@ __Loss Curve__
 + [nashory/progressive-growing-torch](https://github.com/nashory/progressive-growing-torch)
 + [TuXiaokang/DCGAN.PyTorch](https://github.com/TuXiaokang/DCGAN.PyTorch)
 
+##
 ## Author
 MinchulShin, [@nashory](https://github.com/nashory)  
-![image](https://camo.githubusercontent.com/e053bc3e1b63635239e8a44574e819e62ab3e3f4/687474703a2f2f692e67697068792e636f6d2f49634a366e36564a4e6a524e532e676966)
-
-
+## Contributors
+DeMarcus Edwards, [@Djmcflush](https://github.com/Djmcflush)
