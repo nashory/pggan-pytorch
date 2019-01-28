@@ -106,4 +106,3 @@ __Loss Curve__
 MinchulShin, [@nashory](https://github.com/nashory)  
 ## Contributors
 DeMarcus Edwards, [@Djmcflush](https://github.com/Djmcflush)
-
