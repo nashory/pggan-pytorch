@@ -11,14 +11,14 @@ import utils as utils
 
 class tf_recorder:
     def __init__(self):
-        utils.mkdir('repo/tensorboard')
-        
+        utils.mkdir("repo/tensorboard")
+
         for i in range(1000):
-            self.targ = 'repo/tensorboard/try_{}'.format(i)
+            self.targ = "repo/tensorboard/try_{}".format(i)
             if not os.path.exists(self.targ):
                 self.writer = SummaryWriter(self.targ)
                 break
-                
+
     def add_scalar(self, index, val, niter):
         self.writer.add_scalar(index, val, niter)
 
@@ -33,20 +33,19 @@ class tf_recorder:
         self.writer.add_image(index, x, niter)
 
     def add_graph(self, index, x_input, model):
-        torch.onnx.export(model, x_input, os.path.join(self.targ, "{}.proto".format(index)), verbose=True)
+        torch.onnx.export(
+            model,
+            x_input,
+            os.path.join(self.targ, "{}.proto".format(index)),
+            verbose=True,
+        )
         self.writer.add_graph_onnx(os.path.join(self.targ, "{}.proto".format(index)))
 
     def export_json(self, out_file):
         self.writer.export_scalars_to_json(out_file)
 
 
-
-
-
-
-
-
-'''
+"""
 resnet18 = models.resnet18(False)
 writer = SummaryWriter()
 for n_iter in range(100):
@@ -66,11 +65,10 @@ writer.add_embedding(features, metadata=label, label_img=images.unsqueeze(1))
 # export scalar data to JSON for external processing
 writer.export_scalars_to_json("./all_scalars.json")
 writer.close()
-'''
+"""
 
 
-
-'''
+"""
 resnet18 = models.resnet18(False)
 writer = SummaryWriter()
 sample_rate = 44100
@@ -105,5 +103,4 @@ writer.add_embedding(features, metadata=label, label_img=images.unsqueeze(1))
 writer.export_scalars_to_json("./all_scalars.json")
 
 writer.close()
-'''
-
+"""
