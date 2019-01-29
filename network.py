@@ -133,7 +133,7 @@ class Generator(nn.Module):
                 new_model[-1].load_state_dict(module.state_dict())      # copy pretrained weights
             
         if resl >= 3 and resl <= 9:
-            print 'growing network[{}x{} to {}x{}]. It may take few seconds...'.format(int(pow(2,resl-1)), int(pow(2,resl-1)), int(pow(2,resl)), int(pow(2,resl)))
+            print('growing network[{}x{} to {}x{}]. It may take few seconds...'.format(int(pow(2,resl-1)), int(pow(2,resl-1)), int(pow(2,resl)), int(pow(2,resl))))
             low_resl_to_rgb = deepcopy_module(self.model, 'to_rgb_block')
             prev_block = nn.Sequential()
             prev_block.add_module('low_resl_upsample', nn.Upsample(scale_factor=2, mode='nearest'))
@@ -150,7 +150,6 @@ class Generator(nn.Module):
             self.model = new_model
             self.module_names = get_module_names(self.model)
            
-
     def flush_network(self):
         try:
             print('flushing network... It may take few seconds...')
@@ -169,8 +168,6 @@ class Generator(nn.Module):
             new_model.add_module('to_rgb_block', high_resl_to_rgb)
             self.model = new_model
             self.module_names = get_module_names(self.model)
-            
-
         except:
             self.model = self.model
 
@@ -180,13 +177,10 @@ class Generator(nn.Module):
         for param in self.model.parameters():
             param.requires_grad = False
 
-    
     def forward(self, x):
         x = self.model(x.view(x.size(0), -1, 1, 1))
         return x
 
-
-        
 
 class Discriminator(nn.Module):
     def __init__(self, config):
@@ -254,7 +248,7 @@ class Discriminator(nn.Module):
     def grow_network(self, resl):
             
         if resl >= 3 and resl <= 9:
-            print 'growing network[{}x{} to {}x{}]. It may take few seconds...'.format(int(pow(2,resl-1)), int(pow(2,resl-1)), int(pow(2,resl)), int(pow(2,resl)))
+            print('growing network[{}x{} to {}x{}]. It may take few seconds...'.format(int(pow(2,resl-1)), int(pow(2,resl-1)), int(pow(2,resl)), int(pow(2,resl))))
             low_resl_from_rgb = deepcopy_module(self.model, 'from_rgb_block')
             prev_block = nn.Sequential()
             prev_block.add_module('low_resl_downsample', nn.AvgPool2d(kernel_size=2))

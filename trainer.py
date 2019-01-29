@@ -11,7 +11,7 @@ from tqdm import tqdm
 import tf_recorder as tensorboard
 import utils as utils
 import numpy as np
-
+# import tensorflow as tf
 
 class trainer:
     def __init__(self, config):
@@ -171,9 +171,9 @@ class trainer:
         self.z = torch.FloatTensor(self.loader.batchsize, self.nz)
         self.x = torch.FloatTensor(self.loader.batchsize, 3, self.loader.imsize, self.loader.imsize)
         self.x_tilde = torch.FloatTensor(self.loader.batchsize, 3, self.loader.imsize, self.loader.imsize)
-        self.real_label = torch.FloatTensor(self.loader.batchsize, 1).fill_(1)
-        self.fake_label = torch.FloatTensor(self.loader.batchsize, 1).fill_(0)
-
+        self.real_label = torch.FloatTensor(self.loader.batchsize).fill_(1)
+        self.fake_label = torch.FloatTensor(self.loader.batchsize).fill_(0)
+		
         # enable cuda
         if self.use_cuda:
             self.z = self.z.cuda()
@@ -220,8 +220,6 @@ class trainer:
         else:
             return x
 
-
-
     def add_noise(self, x):
         # TODO: support more method of adding noise.
         if self.flag_add_noise==False:
@@ -236,15 +234,13 @@ class trainer:
         z = Variable(torch.from_numpy(z)).cuda() if self.use_cuda else Variable(torch.from_numpy(z))
         return x + z
 
-
     def train(self):
         # noise for test.
         self.z_test = torch.FloatTensor(self.loader.batchsize, self.nz)
         if self.use_cuda:
             self.z_test = self.z_test.cuda()
-        self.z_test = Variable(self.z_test)
+        self.z_test = Variable(self.z_test, volatile=True)
         self.z_test.data.resize_(self.loader.batchsize, self.nz).normal_(0.0, 1.0)
-        
         
         for step in range(2, self.max_resl+1+5):
             for iter in tqdm(range(0,(self.trns_tick*2+self.stab_tick*2)*self.TICK, self.loader.batchsize)):
@@ -270,17 +266,18 @@ class trainer:
                
                 self.fx = self.D(self.x)
                 self.fx_tilde = self.D(self.x_tilde.detach())
-                loss_d = self.mse(self.fx, self.real_label) + self.mse(self.fx_tilde, self.fake_label)
-
+                
+		        loss_d = self.mse(self.fx.squeeze(), self.real_label) + \
+                                  self.mse(self.fx_tilde, self.fake_label)
                 loss_d.backward()
                 self.opt_d.step()
 
                 # update generator.
                 fx_tilde = self.D(self.x_tilde)
-                loss_g = self.mse(fx_tilde, self.real_label.detach())
+                loss_g = self.mse(fx_tilde.squeeze(), self.real_label.detach())
                 loss_g.backward()
                 self.opt_g.step()
-
+                
                 # logging.
                 log_msg = ' [E:{0}][T:{1}][{2:6}/{3:6}]  errD: {4:.4f} | errG: {5:.4f} | [lr:{11:.5f}][cur:{6:.3f}][resl:{7:4}][{8}][{9:.1f}%][{10:.1f}%]'.format(self.epoch, self.globalTick, self.stack, len(self.loader.dataset), loss_d.item(), loss_g.item(), self.resl, int(pow(2,floor(self.resl))), self.phase, self.complete['gen'], self.complete['dis'], self.lr)
                 tqdm.write(log_msg)
@@ -297,18 +294,35 @@ class trainer:
                     utils.mkdir('repo/save/resl_{}'.format(int(floor(self.resl))))
                     utils.save_image_single(x_test.data, 'repo/save/resl_{}/{}_{}_G{}_D{}.jpg'.format(int(floor(self.resl)),int(self.globalIter/self.config.save_img_every), self.phase, self.complete['gen'], self.complete['dis']))
 
-
                 # tensorboard visualization.
                 if self.use_tb:
                     with torch.no_grad():
                         x_test = self.G(self.z_test)
-                    self.tb.add_scalar('data/loss_g', loss_g.item(), self.globalIter)
-                    self.tb.add_scalar('data/loss_d', loss_d.item(), self.globalIter)
+                    self.tb.add_scalar('data/loss_g', loss_g[0].item(), self.globalIter)
+                    self.tb.add_scalar('data/loss_d', loss_d[0].item(), self.globalIter)
                     self.tb.add_scalar('tick/lr', self.lr, self.globalIter)
                     self.tb.add_scalar('tick/cur_resl', int(pow(2,floor(self.resl))), self.globalIter)
+                    '''IMAGE GRID
                     self.tb.add_image_grid('grid/x_test', 4, utils.adjust_dyn_range(x_test.data.float(), [-1,1], [0,1]), self.globalIter)
                     self.tb.add_image_grid('grid/x_tilde', 4, utils.adjust_dyn_range(self.x_tilde.data.float(), [-1,1], [0,1]), self.globalIter)
                     self.tb.add_image_grid('grid/x_intp', 4, utils.adjust_dyn_range(self.x.data.float(), [-1,1], [0,1]), self.globalIter)
+                    '''
+
+    def get_state(self, target):
+        if target == 'gen':
+            state = {
+                'resl' : self.resl,
+                'state_dict' : self.G.module.state_dict(),
+                'optimizer' : self.opt_g.state_dict(),
+            }
+            return state
+        elif target == 'dis':
+            state = {
+                'resl' : self.resl,
+                'state_dict' : self.D.module.state_dict(),
+                'optimizer' : self.opt_d.state_dict(),
+            }
+            return state
 
 
     def get_state(self, target):

@@ -1,5 +1,5 @@
 import os
-import torch
+import torch as torch
 import numpy as np
 from io import BytesIO
 import scipy.misc
@@ -31,7 +31,7 @@ class dataloader:
                     transform=transforms.Compose(   [
                                                     transforms.Resize(size=(self.imsize,self.imsize), interpolation=Image.NEAREST),
                                                     transforms.ToTensor(),
-                                                    ]))       
+                                                    ]))
 
         self.dataloader = DataLoader(
             dataset=self.dataset,
@@ -56,7 +56,6 @@ class dataloader:
 
 
         
-
 
 
 
