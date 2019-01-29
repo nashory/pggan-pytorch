@@ -10,7 +10,6 @@ __YOUR CONTRIBUTION IS INVALUABLE FOR THIS PROJECT :)__
 + used torch.utils.weight_norm for to_rgb_layer of generator.
 + No need to implement the the Celeb A data, Just come with your own dataset :)
 
-
 ## How to use?
 __[step 1.] Prepare dataset__   
 The author of progressive GAN released CelebA-HQ dataset, and which Nash is working on over on the branch that i forked this from. For my version just make sure that all images are the children of that folder that you declare in Config.py. Also i warn you that if you use multiple classes, they should be similar as to not end up with attrocities. 
@@ -27,7 +26,7 @@ The training data folder should look like :
 ~~~
 
 __[step 2.] Prepare environment using virtualenv__   
-  + you can easily set PyTorch and TensorFlow evnironment using virtualenv.  
+  + you can easily set PyTorch (v0.3) and TensorFlow environment using virtualenv.
   + CAUTION: if you have trouble installing PyTorch, install it mansually using pip. [[PyTorch Install]](http://pytorch.org/)
   + For install please take your time and install all dependencies of PyTorch and also install tensorflow
   
@@ -35,6 +34,7 @@ __[step 2.] Prepare environment using virtualenv__
   $ virtualenv --python=python2.7 venv
   $ . venv/bin/activate
   $ pip install -r requirements.txt
+  $ conda install pytorch torchvision -c pytorch
   ~~~
 
 
@@ -68,9 +68,14 @@ __[step 4.] Display on tensorboard__   (At the moment skip this part)
   ~~~
   
   
+__[step 5.] Generate fake images using linear interpolation__   
+~~~
+CUDA_VISIBLE_DEVICES=0 python generate_interpolated.py
+~~~
+  
+  
 ## Experimental results   
-The model is still being trained at this moment.  
-The result of higher resolution will be updated soon.  
+The result of higher resolution(larger than 256x256) will be updated soon.  
 
 __Generated Images__
 
@@ -79,6 +84,8 @@ __Generated Images__
 <img src="https://github.com/nashory/gifs/blob/pggan-pytorch/8_16.gif?raw=true" width="430" height="430"> <img src="https://puu.sh/yufMz/dd74f56d36.jpg" width="430" height="430">  
 <img src="https://github.com/nashory/gifs/blob/pggan-pytorch/16_32.gif?raw=true" width="430" height="430"> <img src="https://puu.sh/yufLF/013cc59c15.jpg" width="430" height="430">  
 <img src="https://github.com/nashory/gifs/blob/pggan-pytorch/32_64.gif?raw=true" width="430" height="430"> <img src="https://puu.sh/yufMV/835ec431ea.jpg" width="430" height="430">  
+<img src="https://github.com/nashory/gifs/blob/pggan-pytorch/64_128.gif?raw=true" width="430" height="430"> <img src="https://puu.sh/yNT76/551760208c.jpg" width="430" height="430">  
+<img src="https://github.com/nashory/gifs/blob/pggan-pytorch/128_256.gif?raw=true" width="430" height="430"> <img src="https://puu.sh/yNSS3/93a11066a7.jpg" width="430" height="430">  
 
 
 __Loss Curve__
@@ -86,9 +93,9 @@ __Loss Curve__
 ![image](https://puu.sh/yuhi4/a49686b220.png)
 
 ## To-Do List (will be implemented soon)
-- Fix tensorboard support issues
-- Add capability of supporting 1 channel images
-
+- [ ] Support WGAN-GP loss
+- [ ] training resuming functionality.
+- [ ] loading CelebA-HQ dataset (for 512x512 and 1024x0124 training)
 
 
 ## Compatability
@@ -105,4 +112,8 @@ __Loss Curve__
 ## Author
 MinchulShin, [@nashory](https://github.com/nashory)  
 ## Contributors
-DeMarcus Edwards, [@Djmcflush](https://github.com/Djmcflush)
+DeMarcus Edwards, [@Djmcflush](https://github.com/Djmcflush)       
+MakeDirtyCode, [@MakeDirtyCode](https://github.com/MakeDirtyCode)      
+Yuan Zhao, [@yuanzhaoYZ](https://github.com/yuanzhaoYZ)      
+zhanpengpan, [@szupzp](https://github.com/szupzp)       
+

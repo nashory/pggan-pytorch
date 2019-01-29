@@ -78,6 +78,11 @@ def make_summary(writer, key, value, step):
         writer.add_summary(summary, global_step=step)
 
 
+def mkdir(path):
+    if os.name == 'nt':
+        os.system('mkdir {}'.format(path.replace('/', '\\')))
+    else:
+        os.system('mkdir -r {}'.format(path))
 
 
 import torch

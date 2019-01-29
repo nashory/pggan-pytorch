@@ -10,11 +10,6 @@ parser.add_argument('--train_data_root', type=str, default='/homes/user/Desktop/
 parser.add_argument('--random_seed', type=int, default=int(time.time()))
 parser.add_argument('--n_gpu', type=int, default=1)             # for Multi-GPU training.
 
-
-
-
-
-
 ## training parameters.
 parser.add_argument('--lr', type=float, default=0.001)          # learning rate.
 parser.add_argument('--lr_decay', type=float, default=0.87)     # learning rate decay at every resolution transition.
