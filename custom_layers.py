@@ -138,7 +138,7 @@ class equalized_deconv2d(nn.Module):
 
         deconv_w = self.deconv.weight.data.clone()
         self.bias = torch.nn.Parameter(torch.FloatTensor(c_out).fill_(0))
-        self.scale = (torch.mean(self.deconv.weight.data ** 2)) ** 0.5
+        self.scale = ((torch.mean(self.deconv.weight.data ** 2)) ** 0.5).cpu()
         self.deconv.weight.data.copy_(self.deconv.weight.data / self.scale)
 
     def forward(self, x):
@@ -157,7 +157,7 @@ class equalized_linear(nn.Module):
 
         linear_w = self.linear.weight.data.clone()
         self.bias = torch.nn.Parameter(torch.FloatTensor(c_out).fill_(0))
-        self.scale = (torch.mean(self.linear.weight.data ** 2)) ** 0.5
+        self.scale = ((torch.mean(self.linear.weight.data ** 2)) ** 0.5).cpu()
         self.linear.weight.data.copy_(self.linear.weight.data / self.scale)
 
     def forward(self, x):
