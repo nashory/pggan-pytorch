@@ -119,7 +119,7 @@ class equalized_conv2d(nn.Module):
 
         conv_w = self.conv.weight.data.clone()
         self.bias = torch.nn.Parameter(torch.FloatTensor(c_out).fill_(0))
-        self.scale = (torch.mean(self.conv.weight.data ** 2)) ** 0.5
+        self.scale = ((torch.mean(self.conv.weight.data ** 2)) ** 0.5).cpu
         self.conv.weight.data.copy_(self.conv.weight.data / self.scale)
 
     def forward(self, x):
