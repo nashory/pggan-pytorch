@@ -82,8 +82,8 @@ class trainer:
         if self.use_cuda:
             self.mse = self.mse.cuda()
             torch.cuda.manual_seed(config.random_seed)
-            self.G = torch.nn.DataParallel(self.G, device_ids=[0]).cuda(device=0)
-            self.D = torch.nn.DataParallel(self.D, device_ids=[0]).cuda(device=0)
+            self.G = torch.nn.DataParallel(self.G, device_ids=[0, 1]).cuda(device=0)
+            self.D = torch.nn.DataParallel(self.D, device_ids=[0, 1]).cuda(device=0)
 
         # define tensors, ship model to cuda, and get dataloader.
         self.renew_everything()
