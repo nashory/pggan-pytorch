@@ -37,6 +37,7 @@ parser.add_argument(
 parser.add_argument("--max_resl", type=int, default=8)  # 10-->1024, 9-->512, 8-->256
 parser.add_argument("--trns_tick", type=int, default=100)  # transition tick
 parser.add_argument("--stab_tick", type=int, default=50)  # stabilization tick
+parser.add_argument("--resume", type=int, default=0)  # stabilization tick
 
 
 ## network structure.

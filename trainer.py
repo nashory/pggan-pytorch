@@ -38,6 +38,28 @@ class trainer:
         self.TICK = config.TICK
         self.globalIter = 0
         self.globalTick = 0
+        if self.config.resume:
+            saved_models = os.listdir("repo/model/")
+            iterations = list(
+                map(lambda x: int(x.split("_")[-1].split(".")[0][1:]), saved_models)
+            )
+            self.last_iteration = max(iterations)
+            selected_indexes = np.where([x == self.last_iteration for x in iterations])[
+                0
+            ]
+            G_last_model = [
+                saved_models[x] for x in selected_indexes if "gen" in saved_models[x]
+            ][0]
+            D_last_model = [
+                saved_models[x] for x in selected_indexes if "dis" in saved_models[x]
+            ][0]
+            print("Resuming after " + str(self.last_iteration) + " ticks")
+            G_weights = torch.load("repo/model/" + G_last_model)
+            D_weights = torch.load("repo/model/" + D_last_model)
+            self.resuming = True
+        else:
+            self.resuming = False
+
         self.kimgs = 0
         self.stack = 0
         self.epoch = 0
@@ -65,6 +87,25 @@ class trainer:
 
         # define tensors, ship model to cuda, and get dataloader.
         self.renew_everything()
+        if self.resuming:
+            while self.globalTick != self.last_iteration:
+                self.resl_scheduler()
+            while ((self.kimgs + self.batchsize) % self.TICK) >= (
+                self.kimgs % self.TICK
+            ):
+                self.resl_scheduler()
+
+            print(
+                "Resuming at "
+                + str(self.resl)
+                + " definition after "
+                + str(self.epoch)
+                + " epochs"
+            )
+            self.G.module.load_state_dict(G_weights["state_dict"])
+            self.D.module.load_state_dict(D_weights["state_dict"])
+            self.opt_g.load_state_dict(G_weights["optimizer"])
+            self.opt_d.load_state_dict(D_weights["optimizer"])
 
         # tensorboard
         self.use_tb = config.use_tb
@@ -117,6 +158,8 @@ class trainer:
         self.kimgs = self.kimgs + self.batchsize
         if (self.kimgs % self.TICK) < (prev_kimgs % self.TICK):
             self.globalTick = self.globalTick + 1
+            if self.resuming and self.globalTick > self.last_iteration:
+                self.resuming = False
             # increase linearly every tick, and grow network structure.
             prev_resl = floor(self.resl)
             self.resl = self.resl + delta
