@@ -55,13 +55,13 @@ class trainer:
             ][0]
             saved_grids = os.listdir("repo/save/grid")
             global_iterations = list(map(lambda x: int(x.split("_")[0]), saved_grids))
-            self.globalIter = max(global_iterations)
+            self.globalIter = self.save_img_every * max(global_iterations)
             print(
                 "Resuming after "
                 + str(self.last_iteration)
                 + " ticks and "
                 + str(self.globalIter)
-                + "iterations"
+                + " iterations"
             )
             G_weights = torch.load("repo/model/" + G_last_model)
             D_weights = torch.load("repo/model/" + D_last_model)
