@@ -53,6 +53,9 @@ class trainer:
             D_last_model = [
                 saved_models[x] for x in selected_indexes if "dis" in saved_models[x]
             ][0]
+            saved_grids = os.listdir("repo/save/grid")
+            global_iterations = list(map(lambda x: int(x.split("_")[0]), saved_grids))
+            self.globalIter = max(global_iterations)
             print("Resuming after " + str(self.last_iteration) + " ticks")
             G_weights = torch.load("repo/model/" + G_last_model)
             D_weights = torch.load("repo/model/" + D_last_model)
@@ -94,6 +97,7 @@ class trainer:
                 self.kimgs % self.TICK
             ):
                 self.resl_scheduler()
+            self.epoch = int(self.last_iteration / len(self.loader.dataset))
 
             print(
                 "Resuming at "
