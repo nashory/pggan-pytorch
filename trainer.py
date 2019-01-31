@@ -97,7 +97,7 @@ class trainer:
                 self.kimgs % self.TICK
             ):
                 self.resl_scheduler()
-            self.epoch = int(self.last_iteration / len(self.loader.dataset))
+            self.epoch = int(self.last_iteration * 1000 / len(self.loader.dataset))
 
             print(
                 "Resuming at "
