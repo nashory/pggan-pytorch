@@ -55,7 +55,7 @@ class trainer:
             ][0]
             saved_grids = os.listdir("repo/save/grid")
             global_iterations = list(map(lambda x: int(x.split("_")[0]), saved_grids))
-            self.globalIter = self.save_img_every * max(global_iterations)
+            self.globalIter = self.config.save_img_every * max(global_iterations)
             print(
                 "Resuming after "
                 + str(self.last_iteration)
