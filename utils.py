@@ -12,64 +12,70 @@ import time
 
 def adjust_dyn_range(x, drange_in, drange_out):
     if not drange_in == drange_out:
-        scale = float(drange_out[1]-drange_out[0])/float(drange_in[1]-drange_in[0])
-        bias = drange_out[0]-drange_in[0]*scale
+        scale = float(drange_out[1] - drange_out[0]) / float(
+            drange_in[1] - drange_in[0]
+        )
+        bias = drange_out[0] - drange_in[0] * scale
         x = x.mul(scale).add(bias)
     return x
 
 
 def resize(x, size):
-    transform = transforms.Compose([
-        transforms.ToPILImage(),
-        transforms.Scale(size),
-        transforms.ToTensor(),
-        ])
+    transform = transforms.Compose(
+        [transforms.ToPILImage(), transforms.Scale(size), transforms.ToTensor()]
+    )
     return transform(x)
 
 
 def make_image_grid(x, ngrid):
     x = x.clone().cpu()
-    if pow(ngrid,2) < x.size(0):
-        grid = make_grid(x[:ngrid*ngrid], nrow=ngrid, padding=0, normalize=True, scale_each=False)
+    if pow(ngrid, 2) < x.size(0):
+        grid = make_grid(
+            x[: ngrid * ngrid], nrow=ngrid, padding=0, normalize=True, scale_each=False
+        )
     else:
-        grid = torch.FloatTensor(ngrid*ngrid, x.size(1), x.size(2), x.size(3)).fill_(1)
-        grid[:x.size(0)].copy_(x)
+        grid = torch.FloatTensor(ngrid * ngrid, x.size(1), x.size(2), x.size(3)).fill_(
+            1
+        )
+        grid[: x.size(0)].copy_(x)
         grid = make_grid(grid, nrow=ngrid, padding=0, normalize=True, scale_each=False)
     return grid
 
 
 def save_image_single(x, path, imsize=512):
     from PIL import Image
+
     grid = make_image_grid(x, 1)
     ndarr = grid.mul(255).clamp(0, 255).byte().permute(1, 2, 0).numpy()
     im = Image.fromarray(ndarr)
-    im = im.resize((imsize,imsize), Image.NEAREST)
+    im = im.resize((imsize, imsize), Image.NEAREST)
     im.save(path)
 
 
 def save_image_grid(x, path, imsize=512, ngrid=4):
     from PIL import Image
+
     grid = make_image_grid(x, ngrid)
     ndarr = grid.mul(255).clamp(0, 255).byte().permute(1, 2, 0).numpy()
     im = Image.fromarray(ndarr)
-    im = im.resize((imsize,imsize), Image.NEAREST)
+    im = im.resize((imsize, imsize), Image.NEAREST)
     im.save(path)
-
 
 
 def load_model(net, path):
     net.load_state_dict(torch.load(path))
+
 
 def save_model(net, path):
     torch.save(net.state_dict(), path)
 
 
 def make_summary(writer, key, value, step):
-    if hasattr(value, '__len__'):
+    if hasattr(value, "__len__"):
         for idx, img in enumerate(value):
             summary = tf.Summary()
             sio = BytesIO()
-            scipy.misc.toimage(img).save(sio, format='png')
+            scipy.misc.toimage(img).save(sio, format="png")
             image_summary = tf.Summary.Image(encoded_image_string=sio.getvalue())
             summary.value.add(tag="{}/{}".format(key, idx), image=image_summary)
             writer.add_summary(summary, global_step=step)
@@ -79,17 +85,27 @@ def make_summary(writer, key, value, step):
 
 
 def mkdir(path):
-    if os.name == 'nt':
-        os.system('mkdir {}'.format(path.replace('/', '\\')))
+    if os.name == "nt":
+        os.system("mkdir {}".format(path.replace("/", "\\")))
     else:
-        os.system('mkdir -r {}'.format(path))
+        os.system("mkdir -p {}".format(path))
 
 
 import torch
 import math
+
 irange = range
-def make_grid(tensor, nrow=8, padding=2,
-              normalize=False, range=None, scale_each=False, pad_value=0):
+
+
+def make_grid(
+    tensor,
+    nrow=8,
+    padding=2,
+    normalize=False,
+    range=None,
+    scale_each=False,
+    pad_value=0,
+):
     """Make a grid of images.
     Args:
         tensor (Tensor or list): 4D mini-batch Tensor of shape (B x C x H x W)
@@ -108,9 +124,13 @@ def make_grid(tensor, nrow=8, padding=2,
     Example:
         See this notebook `here <https://gist.github.com/anonymous/bf16430f7750c023141c562f3e9f2a91>`_
     """
-    if not (torch.is_tensor(tensor) or
-            (isinstance(tensor, list) and all(torch.is_tensor(t) for t in tensor))):
-        raise TypeError('tensor or list of tensors expected, got {}'.format(type(tensor)))
+    if not (
+        torch.is_tensor(tensor)
+        or (isinstance(tensor, list) and all(torch.is_tensor(t) for t in tensor))
+    ):
+        raise TypeError(
+            "tensor or list of tensors expected, got {}".format(type(tensor))
+        )
 
     # if list of tensors, convert to a 4D mini-batch Tensor
     if isinstance(tensor, list):
@@ -128,8 +148,9 @@ def make_grid(tensor, nrow=8, padding=2,
     if normalize is True:
         tensor = tensor.clone()  # avoid modifying tensor in-place
         if range is not None:
-            assert isinstance(range, tuple), \
-                "range has to be a tuple (min, max) if specified. min and max are numbers"
+            assert isinstance(
+                range, tuple
+            ), "range has to be a tuple (min, max) if specified. min and max are numbers"
 
         def norm_ip(img, min, max):
             img.clamp_(min=min, max=max)
@@ -152,21 +173,31 @@ def make_grid(tensor, nrow=8, padding=2,
     xmaps = min(nrow, nmaps)
     ymaps = int(math.ceil(float(nmaps) / xmaps))
     height, width = int(tensor.size(2) + padding), int(tensor.size(3) + padding)
-    grid = tensor.new(3, height * ymaps + padding, width * xmaps + padding).fill_(pad_value)
+    grid = tensor.new(3, height * ymaps + padding, width * xmaps + padding).fill_(
+        pad_value
+    )
     k = 0
     for y in irange(ymaps):
         for x in irange(xmaps):
             if k >= nmaps:
                 break
-            grid.narrow(1, y * height + padding, height - padding)\
-                .narrow(2, x * width + padding, width - padding)\
-                .copy_(tensor[k])
+            grid.narrow(1, y * height + padding, height - padding).narrow(
+                2, x * width + padding, width - padding
+            ).copy_(tensor[k])
             k = k + 1
     return grid
 
 
-def save_image(tensor, filename, nrow=8, padding=2,
-               normalize=False, range=None, scale_each=False, pad_value=0):
+def save_image(
+    tensor,
+    filename,
+    nrow=8,
+    padding=2,
+    normalize=False,
+    range=None,
+    scale_each=False,
+    pad_value=0,
+):
     """Save a given Tensor into an image file.
     Args:
         tensor (Tensor or list): Image to be saved. If given a mini-batch tensor,
@@ -174,9 +205,17 @@ def save_image(tensor, filename, nrow=8, padding=2,
         **kwargs: Other arguments are documented in ``make_grid``.
     """
     from PIL import Image
+
     tensor = tensor.cpu()
-    grid = make_grid(tensor, nrow=nrow, padding=padding, pad_value=pad_value,
-                     normalize=normalize, range=range, scale_each=scale_each)
+    grid = make_grid(
+        tensor,
+        nrow=nrow,
+        padding=padding,
+        pad_value=pad_value,
+        normalize=normalize,
+        range=range,
+        scale_each=scale_each,
+    )
     ndarr = grid.mul(255).clamp(0, 255).byte().permute(1, 2, 0).numpy()
     im = Image.fromarray(ndarr)
     im.save(filename)
