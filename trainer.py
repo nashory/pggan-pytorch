@@ -17,7 +17,7 @@ from multiprocessing import Manager, Value
 
 
 class trainer:
-    def __init__(self, config, continue_button):
+    def __init__(self, config):
         self.config = config
         if torch.cuda.is_available():
             self.use_cuda = True
@@ -32,7 +32,6 @@ class trainer:
         self.resl = 2  # we start from 2^2 = 4
         self.lr = config.lr
         self.eps_drift = config.eps_drift
-        self.continue_button = continue_button
         self.smoothing = config.smoothing
         self.max_resl = config.max_resl
         self.trns_tick = config.trns_tick
@@ -93,8 +92,8 @@ class trainer:
         if self.use_cuda:
             self.mse = self.mse.cuda()
             torch.cuda.manual_seed(config.random_seed)
-            self.G = torch.nn.DataParallel(self.G, device_ids=[0, 1]).cuda(device=0)
-            self.D = torch.nn.DataParallel(self.D, device_ids=[0, 1]).cuda(device=0)
+            self.G = torch.nn.DataParallel(self.G, device_ids=[0]).cuda(device=0)
+            self.D = torch.nn.DataParallel(self.D, device_ids=[0]).cuda(device=0)
 
         # define tensors, ship model to cuda, and get dataloader.
         self.renew_everything()
@@ -168,18 +167,24 @@ class trainer:
 
         prev_kimgs = self.kimgs
         self.kimgs = self.kimgs + self.batchsize
+        print((self.kimgs % self.TICK), (prev_kimgs % self.TICK))
         if (self.kimgs % self.TICK) < (prev_kimgs % self.TICK):
             self.globalTick = self.globalTick + 1
             if self.resuming and self.globalTick > self.last_iteration:
                 self.resuming = False
             # increase linearly every tick, and grow network structure.
             prev_resl = floor(self.resl)
-            if self.continue_button.value:
+            f = open("continue.txt", "r")
+            if int(f.read()):
+                f.close()
+                print("Shift phases")
                 self.resl = floor(self.resl + 1)
+                f = open("continue.txt", "w")
+                f.write("0")
             else:
                 self.resl = self.resl + delta
+            f.close()
             self.resl = max(2, min(10.5, self.resl))  # clamping, range: 4 ~ 1024
-
             # flush network.
             if (
                 self.flag_flush_gen
@@ -213,9 +218,9 @@ class trainer:
             # grow network.
             if floor(self.resl) != prev_resl and floor(self.resl) < self.max_resl + 1:
                 self.lr = self.lr * float(self.config.lr_decay)
-                self.G.grow_network(floor(self.resl))
+                self.G.module.grow_network(floor(self.resl))
                 # self.Gs.grow_network(floor(self.resl))
-                self.D.grow_network(floor(self.resl))
+                self.D.module.grow_network(floor(self.resl))
                 self.renew_everything()
                 self.fadein["gen"] = dict(self.G.module.model.named_children())[
                     "fadein_block"
@@ -340,7 +345,7 @@ class trainer:
         self.z_test = torch.FloatTensor(self.loader.batchsize, self.nz)
         if self.use_cuda:
             self.z_test = self.z_test.cuda()
-        self.z_test = Variable(self.z_test, volatile=True)
+
         self.z_test.data.resize_(self.loader.batchsize, self.nz).normal_(0.0, 1.0)
 
         for step in range(2, self.max_resl + 1 + 5):
@@ -504,15 +509,6 @@ class trainer:
                     print("[snapshot] model saved @ {}".format(path))
 
 
-def asker(continue_button):
-    user_input = None
-    while 1:
-        if user_input != None:
-            continue_button.value = int(user_input)
-        user_input = raw_input("Is this enough for this phase ? (1/0)")
-        time.sleep(5.0)
-
-
 if __name__ == "__main__":
     ## perform training.
     print("----------------- configuration -----------------")
@@ -520,9 +516,5 @@ if __name__ == "__main__":
         print("  {}: {}".format(k, v))
     print("-------------------------------------------------")
     torch.backends.cudnn.benchmark = True  # boost speed.
-    continue_button = Value("i", 0)
-    trainer = trainer(config, continue_button)
-    asker_process = mp.Process(target=asker, args=(continue_button,))
-    asker_process.daemon = True
-    asker_process.start()
+    trainer = trainer(config)
     trainer.train()
