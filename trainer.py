@@ -11,12 +11,13 @@ from tqdm import tqdm
 import tf_recorder as tensorboard
 import utils as utils
 import numpy as np
+from multiprocessing import Manager, Value
 
 # import tensorflow as tf
 
 
 class trainer:
-    def __init__(self, config):
+    def __init__(self, config, continue_button):
         self.config = config
         if torch.cuda.is_available():
             self.use_cuda = True
@@ -31,6 +32,7 @@ class trainer:
         self.resl = 2  # we start from 2^2 = 4
         self.lr = config.lr
         self.eps_drift = config.eps_drift
+        self.continue_button = continue_button
         self.smoothing = config.smoothing
         self.max_resl = config.max_resl
         self.trns_tick = config.trns_tick
@@ -172,7 +174,10 @@ class trainer:
                 self.resuming = False
             # increase linearly every tick, and grow network structure.
             prev_resl = floor(self.resl)
-            self.resl = self.resl + delta
+            if self.continue_button.value:
+                self.resl = floor(self.resl + 1)
+            else:
+                self.resl = self.resl + delta
             self.resl = max(2, min(10.5, self.resl))  # clamping, range: 4 ~ 1024
 
             # flush network.
@@ -498,6 +503,15 @@ class trainer:
                     print("[snapshot] model saved @ {}".format(path))
 
 
+def asker(continue_button):
+    user_input = None
+    while 1:
+        if user_input != None:
+            continue_button.value = int(user_input)
+        user_input = raw_input("Is this enough for this phase ? (1/0)")
+        time.sleep(5.0)
+
+
 if __name__ == "__main__":
     ## perform training.
     print("----------------- configuration -----------------")
@@ -505,5 +519,9 @@ if __name__ == "__main__":
         print("  {}: {}".format(k, v))
     print("-------------------------------------------------")
     torch.backends.cudnn.benchmark = True  # boost speed.
-    trainer = trainer(config)
+    continue_button = Value("i", 0)
+    trainer = trainer(config, continue_button)
+    asker_process = mp.Process(target=asker, args=(continue_button,))
+    asker_process.daemon = True
+    asker_process.start()
     trainer.train()
