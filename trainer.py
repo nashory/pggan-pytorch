@@ -465,6 +465,8 @@ class trainer:
                 "resl": self.resl,
                 "state_dict": self.G.module.state_dict(),
                 "optimizer": self.opt_g.state_dict(),
+                "globalIter": self.globalIter,
+                "globalTick": self.globalTick,
             }
             return state
         elif target == "dis":
@@ -472,6 +474,8 @@ class trainer:
                 "resl": self.resl,
                 "state_dict": self.D.module.state_dict(),
                 "optimizer": self.opt_d.state_dict(),
+                "globalIter": self.globalIter,
+                "globalTick": self.globalTick,
             }
             return state
 
